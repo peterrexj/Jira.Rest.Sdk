@@ -11,13 +11,14 @@ namespace Jira.IntegrationTests
 {
     public class TestBase
     {
-        protected JiraService service = null;
+        protected JiraService? service = null;
 
         [SetUp]
         public void Setup()
         {
-            EnvironmentVariables.SetEnvironmentContent(PjUtility.Runtime.LoadAssembly("Jira.IntegrationTests")
-                .GetEmbeddedResourceAsText("Jira.IntegrationTests.Ex.EnvironmentVariableNames.data"));
+            PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionAssembly =
+               IoHelper.CombinePath(PjUtility.Runtime.ExecutingFolder, "Jira.IntegrationTests.dll");
+            PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionFile = "Jira.IntegrationTests.EnvVariableData.EnvironmentVariableNames.data";
             service = new JiraService(EnvironmentVariables.JiraServerUrl, EnvironmentVariables.JiraUsername, EnvironmentVariables.JiraPassword, isCloudVersion: false);
         }
     }

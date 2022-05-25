@@ -8,11 +8,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="Ex\EnvironmentVariableNames.data" />
+    <None Remove="EnvVariableData\EnvironmentVariableNames.data" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Ex\EnvironmentVariableNames.data" />
+    <EmbeddedResource Include="EnvVariableData\EnvironmentVariableNames.data">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>

@@ -11,33 +11,22 @@ namespace Jira.IntegrationTests
 {
     internal class ProjectTests : TestBase
     {
-
         [TestCase]
         public void Verify_ListOfProjects()
         {
-            var projects = service.ProjectsGet();
+            var projects = service?.ProjectsGet();
             Assert.IsNotNull(projects);
-            Assert.Greater(projects.Count, 0, "There should be at least one project returned from the server");
+            Assert.Greater(projects?.Count, 0, "There should be at least one project returned from the server");
         }
-
-        //[TestCase]
-        //public void Should_Filter_Issues()
-        //{
-        //    Assert.IsNotEmpty(EnvironmentVariables.IssueFilter, "The value of issue filter is required");
-        //    var issues = service.IssueSearch(EnvironmentVariables.IssueFilter);
-        //    //var project = service.ProjectsGet(p => p.Name.EqualsIgnoreCase(EnvironmentVariables.ProjectKey));
-        //    //Assert.IsNotNull(project);
-        //    //Assert.Equals(project.Count, 1, "There should be at least one project returned from the server");
-        //}
 
         [TestCase]
         public void Should_Find_Project()
         {
             Assert.IsNotEmpty(EnvironmentVariables.ProjectKey, "The value of project key");
-            var projects = service.ProjectsGetByNameOrKey(EnvironmentVariables.ProjectKey);
+            var projects = service?.ProjectsGetByNameOrKey(EnvironmentVariables.ProjectKey);
             Assert.IsNotNull(projects);
-            Assert.AreEqual(projects.Count(), 1, "There should be at least one project returned from the server");
-            Assert.AreEqual(projects[0].Key, EnvironmentVariables.ProjectKey, "The project key does not match with the filtered result");
+            Assert.AreEqual(projects?.Count, 1, "There should be at least one project returned from the server");
+            Assert.AreEqual(projects?[0].Key, EnvironmentVariables.ProjectKey, "The project key does not match with the filtered result");
         }
     }
 }

@@ -23,7 +23,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="TestAny.Essentials.Api" Version="1.0.5.7" />
+		<PackageReference Include="TestAny.Essentials.Api" Version="1.0.5.8" />
 	</ItemGroup>
 
 	<ItemGroup>
