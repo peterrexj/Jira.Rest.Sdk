@@ -1,1 +1,2 @@
 ﻿First Release 1.0.0.0 - Rest Endpoints - Cloud and Server to connect Zeyphr Scale
+This sdk provides features to connect with Jira service hosted Server or Cloud. The first release contains the basic features to communicate. With the upcoming release more api endpoints will be added.
