@@ -1,0 +1,7 @@
+JiraServerUrl
+JiraUsername
+JiraPassword
+ProjectKey
+IssueFilter
+IssueNamePrefix
+IssueCleanFilter

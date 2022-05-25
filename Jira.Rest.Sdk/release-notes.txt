@@ -1,0 +1,1 @@
+﻿First Release 1.0.0.0 - Rest Endpoints - Cloud and Server to connect Zeyphr Scale

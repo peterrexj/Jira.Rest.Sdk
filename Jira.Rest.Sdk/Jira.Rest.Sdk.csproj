@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.0</TargetFramework>
+		<PackageId>Jira.Rest.Sdk</PackageId>
+		<LangVersion>latest</LangVersion>
+		<Authors>Peter Joseph</Authors>
+		<Copyright>Apache License 2.0</Copyright>
+		<PackageProjectUrl>https://github.com/peterrexj/Jira.Rest.Sdk</PackageProjectUrl>
+		<PackageLicenseExpression></PackageLicenseExpression>
+		<RepositoryUrl>https://github.com/peterrexj/Jira.Rest.Sdk</RepositoryUrl>
+		<PackageLicenseExpression></PackageLicenseExpression>
+		<RepositoryType>Public</RepositoryType>
+		<PackageLicenseExpression></PackageLicenseExpression>
+		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+		<PackageLicenseExpression></PackageLicenseExpression>
+		<Title>Jira Rest Sdk</Title>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageLicenseExpression></PackageLicenseExpression>
+		<PackageReleaseNotes>First Release - Rest Endpoints - Cloud and Server</PackageReleaseNotes>
+		<Description>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/product-description.txt"))</Description>
+		<Version>1.0.0.0</Version>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<Company>Peter Joseph</Company>
+		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="TestAny.Essentials.Api" Version="1.0.5.6" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+	</ItemGroup>
+</Project>

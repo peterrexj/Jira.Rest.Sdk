@@ -1,0 +1,32 @@
+﻿Jira.Rest.Sdk
+========
+
+SDK using Jira REST to query Jira application using Rest endpoints. Manage your Jira process from query, create and update issues. Integrate with you existing automation solution or process that will manage both Jira Server and Cloud based application.
+
+The request and response objects are having proper DTOS (data transfer or model objects) defined within this package.
+
+How to use:
+```C#
+     //Connect to cloud hosted Jira service
+     var jiraService = new JiraService("jira url", "username", "password", isCloudVersion: true);
+
+     //Connect to cloud hosted Jira service
+     var jiraService = new JiraService("jira url", "username", "password", isCloudVersion: false);
+
+     //Get a test case by Key
+     var issue = jiraService.IssueGetById("POC-100");
+
+     //Get a list of issues matching your jql
+     var issue = jiraService.IssueSearch("<your jql>");
+
+     //Get project by custom filters on any properties
+     var project = jiraService.ProjectsGet(p => p.Name.EqualsIgnoreCase("poc")).FirstOrDefault();
+
+     //Create a Issue
+     var newIssue = jiraService.IssueCreate(projectKey: "POC", 
+                    issueType: "Story", 
+                    summary: "Build new interface for model B", 
+                    description: "Provide your detailed description for the issue", 
+                    priority: "High", 
+                    parentKey: "POC-99")
+```
