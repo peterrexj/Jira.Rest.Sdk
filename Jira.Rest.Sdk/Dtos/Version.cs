@@ -27,5 +27,14 @@ namespace Jira.Rest.Sdk.Dtos
 
         [JsonProperty("releaseDate")]
         public string ReleaseDate { get; set; }
+
+        [JsonProperty("overdue")]
+        public bool Overdue { get; set; }
+
+        [JsonProperty("userReleaseDate")]
+        public string UserReleaseDate { get; set; }
+
+        [JsonProperty("projectId")]
+        public int ProjectId { get; set; }
     }
 }

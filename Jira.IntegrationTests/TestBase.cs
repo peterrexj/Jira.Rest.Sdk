@@ -11,7 +11,7 @@ namespace Jira.IntegrationTests
 {
     public class TestBase
     {
-        protected JiraService? service = null;
+        protected JiraService? _service = null;
 
         [SetUp]
         public void Setup()
@@ -19,7 +19,7 @@ namespace Jira.IntegrationTests
             PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionAssembly =
                IoHelper.CombinePath(PjUtility.Runtime.ExecutingFolder, "Jira.IntegrationTests.dll");
             PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionFile = "Jira.IntegrationTests.EnvVariableData.EnvironmentVariableNames.data";
-            service = new JiraService(EnvironmentVariables.JiraServerUrl, EnvironmentVariables.JiraUsername, EnvironmentVariables.JiraPassword, isCloudVersion: false);
+            _service = new JiraService(EnvironmentVariables.JiraServerUrl, EnvironmentVariables.JiraUsername, EnvironmentVariables.JiraPassword, isCloudVersion: false);
         }
     }
 }

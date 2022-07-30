@@ -16,7 +16,7 @@ namespace Jira.IntegrationTests
         public void Should_Filter_Issues()
         {
             Assert.IsNotEmpty(EnvironmentVariables.IssueFilter, "The value of issue filter is required");
-            var issues = service.IssueSearch(EnvironmentVariables.IssueFilter);
+            var issues = _service.IssueSearch(EnvironmentVariables.IssueFilter);
             Assert.IsNotNull(issues);
             Assert.Greater(issues.Count, 0, $"There should be at least one issue returned from the server by this filter [{EnvironmentVariables.IssueFilter}]");
         }
@@ -25,7 +25,7 @@ namespace Jira.IntegrationTests
         public void Should_Create_Issue()
         {
             var issueSummary = $"{EnvironmentVariables.IssueNamePrefix}_{DateTimeEx.GetDateTimeReadable()}";
-            var issue= service.IssueCreate(EnvironmentVariables.ProjectKey, "Story", issueSummary,
+            var issue= _service.IssueCreate(EnvironmentVariables.ProjectKey, "Story", issueSummary,
                 "Generated from Integration Tests", "High");
             Assert.IsNotNull(issue);
             Assert.IsTrue(issue.Id.HasValue());
@@ -37,15 +37,15 @@ namespace Jira.IntegrationTests
         public void Should_Delete_Issue()
         {
             Assert.IsNotEmpty(EnvironmentVariables.IssueCleanFilter, "The value of issue filter is required");
-            var issues = service.IssueSearch(EnvironmentVariables.IssueCleanFilter);
+            var issues = _service.IssueSearch(EnvironmentVariables.IssueCleanFilter);
             foreach (var item in issues)
             {
                 if (item.Fields.Summary.StartsWith(EnvironmentVariables.IssueNamePrefix))
                 {
-                    service.IssueDelete(item.Key);
+                    _service.IssueDelete(item.Key);
                 }
             }
-            var issuesNew = service.IssueSearch(EnvironmentVariables.IssueCleanFilter);
+            var issuesNew = _service.IssueSearch(EnvironmentVariables.IssueCleanFilter);
             Assert.IsNotNull(issuesNew);
             Assert.AreEqual(issuesNew.Count, 0);
         }

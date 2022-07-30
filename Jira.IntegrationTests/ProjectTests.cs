@@ -14,7 +14,7 @@ namespace Jira.IntegrationTests
         [TestCase]
         public void Verify_ListOfProjects()
         {
-            var projects = service?.ProjectsGet();
+            var projects = _service?.ProjectsGet();
             Assert.IsNotNull(projects);
             Assert.Greater(projects?.Count, 0, "There should be at least one project returned from the server");
         }
@@ -23,7 +23,7 @@ namespace Jira.IntegrationTests
         public void Should_Find_Project()
         {
             Assert.IsNotEmpty(EnvironmentVariables.ProjectKey, "The value of project key");
-            var projects = service?.ProjectsGetByNameOrKey(EnvironmentVariables.ProjectKey);
+            var projects = _service?.ProjectsGetByNameOrKey(EnvironmentVariables.ProjectKey);
             Assert.IsNotNull(projects);
             Assert.AreEqual(projects?.Count, 1, "There should be at least one project returned from the server");
             Assert.AreEqual(projects?[0].Key, EnvironmentVariables.ProjectKey, "The project key does not match with the filtered result");

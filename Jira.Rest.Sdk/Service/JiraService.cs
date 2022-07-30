@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using TestAny.Essentials.Api;
 using TestAny.Essentials.Core.Dtos.Api;
+using Version = Jira.Rest.Sdk.Dtos.Version;
 
 namespace Jira.Rest.Sdk
 {
@@ -650,6 +651,33 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
 
             return ((List<Assignee>)ToType<List<Assignee>>(jiraResponse.ResponseBody.ContentJson))?.FirstOrDefault();
+        }
+
+        public Assignee UserAccountGet(string accountId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user")
+                .SetQueryParams(new ParameterCollection { { "accountId", accountId } })
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ToType<Assignee>(jiraResponse.ResponseBody.ContentJson);
+        }
+
+        public Version VersionGet(string versionId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/version/{versionId}")
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ToType<Version>(jiraResponse.ResponseBody.ContentJson);
         }
     }
 }

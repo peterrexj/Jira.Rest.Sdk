@@ -12,7 +12,7 @@ namespace Jira.IntegrationTests
         [TestCase]
         public void Verify_ConnectionToJira()
         {
-            Assert.IsTrue(service.CanConnect, "Connection to the Jira server failed");
+            Assert.IsTrue(_service.CanConnect, "Connection to the Jira server failed");
         }
     }
 }

@@ -10,6 +10,9 @@ namespace Jira.Rest.Sdk.Dtos
         [JsonProperty("status", NullValueHandling = NullValueHandling.Ignore)]
         public Status Status { get; set; }
 
+        [JsonProperty("resolution", NullValueHandling = NullValueHandling.Ignore)]
+        public Resolution Resolution { get; set; }
+
         [JsonProperty("watcher", NullValueHandling = NullValueHandling.Ignore)]
         public Watcher Watcher { get; set; }
 
