@@ -67,6 +67,7 @@ There are some level of custom customization available on the service that can b
 7. assertResponseStatusOk - True/False whether the response code status from the server needs to be asserted for OK (default value 'true')
 8. listOfResponseCodeOnFailureToRetry - Any of these status code matched from response will then use for retry the request. For example Proxy Authentication randomly failing can be then used to retry (default value 'null' which means it is not checking any response code for fail retry)
 9. requestTimeoutInSeconds - You can increase the response wait time from server based on your server performance, load or network traffic or speed (default value: 300)
+10. retryOnRequestTimeout - True/False whether the request should retry on when the server fails to respond within the timeout period, retry on when server timeouts for a request
 
 A scenario where you have network issues and you want to retry operation, then try this
 ```C#
@@ -75,6 +76,8 @@ A scenario where you have network issues and you want to retry operation, then t
           requestRetryTimes: 20,
           timeToSleepBetweenRetryInMilliseconds: 1500,
           assertResponseStatusOk: true,
-          listOfResponseCodeOnFailureToRetry: new System.Net.HttpStatusCode []  { System.Net.HttpStatusCode.ProxyAuthenticationRequired  });
+          listOfResponseCodeOnFailureToRetry: new System.Net.HttpStatusCode []  { System.Net.HttpStatusCode.ProxyAuthenticationRequired  },
+          retryOnRequestTimeout: false
+        );
 ```
 The above will apply an automatic retry of a maximum 20 times, giving itself a break of 1500 milliseconds between each request made to Jira that fails with a response code of HttpStatusCode.ProxyAuthenticationRequired

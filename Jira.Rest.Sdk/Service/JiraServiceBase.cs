@@ -30,6 +30,8 @@ namespace Jira.Rest.Sdk
         protected int TimeToSleepBetweenRetryInMilliseconds;
         protected bool AssertResponseStatusOk;
         protected HttpStatusCode[] ListOfResponseCodeOnFailureToRetry;
+        protected bool RetryOnRequestTimeout;
+        protected int RequestTimeoutInSeconds;
 
         protected JiraServiceBase(string appUrl,
             string serviceUsername,
@@ -43,10 +45,13 @@ namespace Jira.Rest.Sdk
             int timeToSleepBetweenRetryInMilliseconds,
             bool assertResponseStatusOk,
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry,
-            int requestTimeoutInSeconds)
+            int requestTimeoutInSeconds,
+            bool retryOnRequestTimeout)
         {
-            SetBaseValues(appUrl, serviceUsername, servicePassword, isCloudVersion, jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
-                requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds);
+            SetBaseValues(appUrl, serviceUsername, servicePassword, isCloudVersion, 
+                jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
+                requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, 
+                listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout);
         }
 
         private void SetBaseValues(string appUrl,
@@ -61,7 +66,8 @@ namespace Jira.Rest.Sdk
             int timeToSleepBetweenRetryInMilliseconds,
             bool assertResponseStatusOk,
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry,
-            int requestTimeoutInSeconds)
+            int requestTimeoutInSeconds,
+            bool retryOnRequestTimeout)
         {
             if (appUrl.IsEmpty())
             {
@@ -85,6 +91,8 @@ namespace Jira.Rest.Sdk
             TimeToSleepBetweenRetryInMilliseconds = timeToSleepBetweenRetryInMilliseconds;
             AssertResponseStatusOk = assertResponseStatusOk;
             ListOfResponseCodeOnFailureToRetry = listOfResponseCodeOnFailureToRetry;
+            RetryOnRequestTimeout = retryOnRequestTimeout;
+            RequestTimeoutInSeconds = requestTimeoutInSeconds;
             TestAnyAppConfig.DefaultApiResponseTimeoutWaitPeriodInSeconds = requestTimeoutInSeconds;
         }
 

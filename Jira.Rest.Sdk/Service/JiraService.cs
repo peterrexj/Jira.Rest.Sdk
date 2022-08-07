@@ -30,6 +30,7 @@ namespace Jira.Rest.Sdk
         /// <param name="timeToSleepBetweenRetryInMilliseconds">Time to sleep in milliseconds between each time a call is retry (default value: '1000'). Applied only when requestRetryTimes is more than 1</param>
         /// <param name="assertResponseStatusOk">True/False whether the response code status from the server needs to be asserted for OK (default value 'true')</param>
         /// <param name="listOfResponseCodeOnFailureToRetry">Any of these status code matched from response will then use for retry the request. For example Proxy Authentication randomly failing can be then used to retry (default value 'null' which means it is not checking any response code for fail retry)</param>
+        /// <param name="retryOnRequestTimeout">True/False whether the request should retry on when the server fails to respond within the timeout period, retry on when server timeouts for a request</param>
         public JiraService(string appUrl,
             string serviceUsername,
             string servicePassword,
@@ -42,9 +43,12 @@ namespace Jira.Rest.Sdk
             int timeToSleepBetweenRetryInMilliseconds = 1000,
             bool assertResponseStatusOk = true,
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry = null,
-            int requestTimeoutInSeconds = 300)
-                : base(appUrl, serviceUsername, servicePassword, isCloudVersion, jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
-                    requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds)
+            int requestTimeoutInSeconds = 300,
+            bool retryOnRequestTimeout = false)
+                : base(appUrl, serviceUsername, servicePassword, isCloudVersion, 
+                      jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
+                      requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, 
+                      listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout)
         { }
 
 
@@ -60,10 +64,12 @@ namespace Jira.Rest.Sdk
             }
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/search")
                 .SetQueryParams(projectSearchRequest)
+                .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<IList<Project>>(jiraResponse.ResponseBody.ContentString);
@@ -109,10 +115,12 @@ namespace Jira.Rest.Sdk
 
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue")
                  .SetJsonBody(createIssueRequestModel)
+                 .SetTimeout(RequestTimeoutInSeconds)
                  .PostWithRetry(assertOk: AssertResponseStatusOk,
                        timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                        retryOption: RequestRetryTimes,
-                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                       retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.Created)
                 throw new Exception("The Jira Issue creation failed!");
@@ -150,10 +158,12 @@ namespace Jira.Rest.Sdk
 
                     var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLink")
                         .SetJsonBody(requestModel)
+                        .SetTimeout(RequestTimeoutInSeconds)
                         .PostWithRetry(assertOk: AssertResponseStatusOk,
                            timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                            retryOption: RequestRetryTimes,
-                           httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                           httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                           retryOnRequestTimeout: RetryOnRequestTimeout);
                 }
             }
         }
@@ -178,10 +188,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
               .SetJsonBody(reqBody)
               .WithJsonResponse()
+              .SetTimeout(RequestTimeoutInSeconds)
               .PutWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
@@ -192,10 +204,12 @@ namespace Jira.Rest.Sdk
 
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/assignee")
                .SetJsonBody(reqBody)
+               .SetTimeout(RequestTimeoutInSeconds)
                .PutWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The issue assignment was not properly performed!");
@@ -206,10 +220,12 @@ namespace Jira.Rest.Sdk
 
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/assignee")
                .SetJsonBody(reqBody)
+               .SetTimeout(RequestTimeoutInSeconds)
                .PutWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The issue assignment was not properly performed!");
@@ -250,10 +266,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
               .SetJsonBody(reqBody)
               .WithJsonResponse()
+              .SetTimeout(RequestTimeoutInSeconds)
               .PutWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
@@ -291,10 +309,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
                   .SetJsonBody(reqBody)
                   .WithJsonResponse()
+                  .SetTimeout(RequestTimeoutInSeconds)
                   .PutWithRetry(assertOk: AssertResponseStatusOk,
                        timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                        retryOption: RequestRetryTimes,
-                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                       retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
@@ -318,10 +338,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
                   .SetJsonBody(reqBody)
                   .WithJsonResponse()
+                  .SetTimeout(RequestTimeoutInSeconds)
                   .PutWithRetry(assertOk: AssertResponseStatusOk,
                        timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                        retryOption: RequestRetryTimes,
-                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                       retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
@@ -359,10 +381,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
                   .SetJsonBody(reqBody)
                   .WithJsonResponse()
+                  .SetTimeout(RequestTimeoutInSeconds)
                   .PutWithRetry(assertOk: AssertResponseStatusOk,
                        timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                        retryOption: RequestRetryTimes,
-                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                       retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The fix version was not updated!");
@@ -386,10 +410,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
                   .SetJsonBody(reqBody)
                   .WithJsonResponse()
+                  .SetTimeout(RequestTimeoutInSeconds)
                   .PutWithRetry(assertOk: AssertResponseStatusOk,
                        timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                        retryOption: RequestRetryTimes,
-                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                       retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The fix version was not updated!");
@@ -406,10 +432,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/2/issue/{issueKey}")
                   .SetJsonBody(reqBody)
                   .WithJsonResponse()
+                  .SetTimeout(RequestTimeoutInSeconds)
                   .PutWithRetry(assertOk: AssertResponseStatusOk,
                        timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                        retryOption: RequestRetryTimes,
-                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                       httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                       retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
@@ -432,10 +460,12 @@ namespace Jira.Rest.Sdk
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project")
                 .WithJsonResponse()
+                .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<List<Project>>(jiraResponse.ResponseBody.ContentString);
@@ -450,10 +480,12 @@ namespace Jira.Rest.Sdk
         public Project ProjectGetById(string issueKey)
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/{issueKey}")
+               .SetTimeout(RequestTimeoutInSeconds)
                .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<Project>(jiraResponse.ResponseBody.ContentString);
@@ -463,10 +495,12 @@ namespace Jira.Rest.Sdk
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/search")
                 .SetQueryParams(issueSearchRequest)
+                .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<Pagination<Project>>(jiraResponse.ResponseBody.ContentJson);
@@ -486,10 +520,12 @@ namespace Jira.Rest.Sdk
         {
             Log($"Trying to get jira issue [{issueKey}]");
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
+               .SetTimeout(RequestTimeoutInSeconds)
                .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<Issue>(jiraResponse.ResponseBody.ContentString);
@@ -500,10 +536,12 @@ namespace Jira.Rest.Sdk
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search")
                 .SetJsonBody(issueSearchRequest)
                 //.SetQueryParams(issueSearchRequest)
+                .SetTimeout(RequestTimeoutInSeconds)
                 .PostWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<Pagination<Issue>>(jiraResponse.ResponseBody.ContentJson);
@@ -610,20 +648,24 @@ namespace Jira.Rest.Sdk
 
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/createmeta")
                .SetQueryParams(qryParam)
+               .SetTimeout(RequestTimeoutInSeconds)
                .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             return jiraResponse;
         }
         public TestApiResponse IssueLinkTypesMetadataGet()
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLinkType")
+               .SetTimeout(RequestTimeoutInSeconds)
                .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             return jiraResponse;
         }
@@ -643,10 +685,12 @@ namespace Jira.Rest.Sdk
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user/search")
               .SetQueryParams(new ParameterCollection { { "query", _username } })
+              .SetTimeout(RequestTimeoutInSeconds)
               .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
 
@@ -657,10 +701,12 @@ namespace Jira.Rest.Sdk
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user")
                 .SetQueryParams(new ParameterCollection { { "accountId", accountId } })
+                .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
                     timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                     retryOption: RequestRetryTimes,
-                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
 
@@ -670,10 +716,12 @@ namespace Jira.Rest.Sdk
         public Version VersionGet(string versionId)
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/version/{versionId}")
+                .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
                     timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                     retryOption: RequestRetryTimes,
-                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry);
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
 
