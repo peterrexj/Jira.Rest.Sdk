@@ -19,6 +19,7 @@ namespace Jira.Rest.Sdk
         protected string _password;
         private readonly bool _isCloudVersion = false;
         private static bool _loginVerified = false;
+        protected string _proxyKeyName;
 
         public string JiraUrl { get; set; }
         public string JiraApiVersion { get; set; }
@@ -46,12 +47,14 @@ namespace Jira.Rest.Sdk
             bool assertResponseStatusOk,
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry,
             int requestTimeoutInSeconds,
-            bool retryOnRequestTimeout)
+            bool retryOnRequestTimeout,
+            string proxyKeyName)
         {
             SetBaseValues(appUrl, serviceUsername, servicePassword, isCloudVersion, 
                 jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
                 requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, 
-                listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout);
+                listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout,
+                proxyKeyName);
         }
 
         private void SetBaseValues(string appUrl,
@@ -67,7 +70,8 @@ namespace Jira.Rest.Sdk
             bool assertResponseStatusOk,
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry,
             int requestTimeoutInSeconds,
-            bool retryOnRequestTimeout)
+            bool retryOnRequestTimeout,
+            string proxyKeyName)
         {
             if (appUrl.IsEmpty())
             {
@@ -86,6 +90,7 @@ namespace Jira.Rest.Sdk
 
             _appFullEndpoint = JiraUrl;
             _logPrefix = logPrefix;
+            _proxyKeyName = proxyKeyName;
             PageSizeSearch = pageSizeSearchResult;
             RequestRetryTimes = requestRetryTimes;
             TimeToSleepBetweenRetryInMilliseconds = timeToSleepBetweenRetryInMilliseconds;
@@ -127,6 +132,8 @@ namespace Jira.Rest.Sdk
                          .PrepareRequest(statusHealthEndpoint)
                          .AddBasicAuthorizationHeader(_username, _password)
                          .SetNtmlAuthentication()
+                         .ProxyRequired(_proxyKeyName.HasValue())
+                         .AddProxy(_proxyKeyName)
                          .Get();
                 }
                 catch (Exception)
@@ -168,7 +175,9 @@ namespace Jira.Rest.Sdk
                 .SetEnvironment(_appFullEndpoint)
                 .PrepareRequest(requestUrl)
                 .AddBasicAuthorizationHeader(_username, _password)
-                .SetNtmlAuthentication();
+                .SetNtmlAuthentication()
+                .ProxyRequired(_proxyKeyName.HasValue())
+                .AddProxy(_proxyKeyName);
         }
 
        
