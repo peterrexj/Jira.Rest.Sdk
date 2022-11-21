@@ -101,7 +101,7 @@ namespace Jira.Rest.Sdk
             TestAnyAppConfig.DefaultApiResponseTimeoutWaitPeriodInSeconds = requestTimeoutInSeconds;
         }
 
-        protected void Log(string message) => Console.WriteLine($"{_logPrefix}{message}");
+        protected void Log(string message) => PjUtility.Log($"{_logPrefix}{message}");
         protected static T ToType<T>(dynamic content) => SerializationHelper.ToType<T>(content);
         protected static T ToType<T>(string content) => SerializationHelper.ToType<T>(content);
         protected static string ToJson(object content) => JsonConvert.SerializeObject(content);

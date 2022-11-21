@@ -604,7 +604,7 @@ namespace Jira.Rest.Sdk
                         var currentSearchQry = searchQuery.DeepClone();
                         currentSearchQry["startAt"] = (i * maxResults).ToString();
 
-                        Console.WriteLine($"Trying to read {count} of {totalPages} starting at {currentSearchQry["startAt"]}");
+                        PjUtility.Log($"Trying to read {count} of {totalPages} starting at {currentSearchQry["startAt"]}");
                         var searchResult = search(currentSearchQry);
 
                         if (predicate != null)
