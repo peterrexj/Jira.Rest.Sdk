@@ -730,5 +730,19 @@ namespace Jira.Rest.Sdk
 
             return ToType<Version>(jiraResponse.ResponseBody.ContentJson);
         }
+        public ProjectComponent ComponentGet(string componentId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/component/{componentId}")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ToType<ProjectComponent>(jiraResponse.ResponseBody.ContentJson);
+        }
     }
 }
