@@ -15,6 +15,7 @@ namespace Jira.IntegrationTests
         public static string JiraServerUrl => PjUtility.EnvironmentVariables.GetValue("JiraServerUrl");
         public static string JiraUsername => PjUtility.EnvironmentVariables.GetValue("JiraUsername");
         public static string JiraPassword => PjUtility.EnvironmentVariables.GetValue("JiraPassword");
+        public static string JiraAuthToken => PjUtility.EnvironmentVariables.GetValue("JiraAuthToken");
         public static string ProjectKey => PjUtility.EnvironmentVariables.GetValue("ProjectKey");
         public static string IssueFilter => PjUtility.EnvironmentVariables.GetValue("IssueFilter");
         public static string IssueNamePrefix => PjUtility.EnvironmentVariables.GetValue("IssueNamePrefix");

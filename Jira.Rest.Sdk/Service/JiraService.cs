@@ -32,6 +32,7 @@ namespace Jira.Rest.Sdk
         /// <param name="listOfResponseCodeOnFailureToRetry">Any of these status code matched from response will then use for retry the request. For example Proxy Authentication randomly failing can be then used to retry (default value 'null' which means it is not checking any response code for fail retry)</param>
         /// <param name="retryOnRequestTimeout">True/False whether the request should retry on when the server fails to respond within the timeout period, retry on when server timeouts for a request</param>
         /// <param name="proxyKeyName">Key to the proxy details. Refer readme for more information on how to set the custom proxy for every request</param>
+        /// <param name="authToken">Authorization token to access the Jira Service</param>
         public JiraService(string appUrl,
             string serviceUsername,
             string servicePassword,
@@ -46,12 +47,13 @@ namespace Jira.Rest.Sdk
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry = null,
             int requestTimeoutInSeconds = 300,
             bool retryOnRequestTimeout = false,
-            string proxyKeyName = "")
+            string proxyKeyName = "",
+            string authToken = "")
                 : base(appUrl, serviceUsername, servicePassword, isCloudVersion, 
                       jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
                       requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, 
                       listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout,
-                      proxyKeyName)
+                      proxyKeyName, authToken)
         { }
 
 

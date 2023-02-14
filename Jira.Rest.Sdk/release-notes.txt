@@ -1,4 +1,7 @@
-﻿1.0.1.1
+﻿1.0.1.7
+- Added bearer auth to the service
+
+1.0.1.1
 - Retry on every action [Get, Post, Delete, Put] has now additional parameter to control the timeout error from server. retryOnRequestTimeout, can be set to true/false to fail when the request timeout or to retry
 
 1.0.1.0

@@ -19,7 +19,8 @@ namespace Jira.IntegrationTests
             PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionAssembly =
                IoHelper.CombinePath(PjUtility.Runtime.ExecutingFolder, "Jira.IntegrationTests.dll");
             PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionFile = "Jira.IntegrationTests.EnvVariableData.EnvironmentVariableNames.data";
-            _service = new JiraService(EnvironmentVariables.JiraServerUrl, EnvironmentVariables.JiraUsername, EnvironmentVariables.JiraPassword, isCloudVersion: false);
+            _service = new JiraService(EnvironmentVariables.JiraServerUrl,
+                "", "", isCloudVersion: true, authToken: EnvironmentVariables.JiraAuthToken);
         }
     }
 }

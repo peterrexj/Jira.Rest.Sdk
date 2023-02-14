@@ -20,6 +20,7 @@ namespace Jira.Rest.Sdk
         private readonly bool _isCloudVersion = false;
         private static bool _loginVerified = false;
         protected string _proxyKeyName;
+        protected string _authToken;
 
         public string JiraUrl { get; set; }
         public string JiraApiVersion { get; set; }
@@ -48,13 +49,14 @@ namespace Jira.Rest.Sdk
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry,
             int requestTimeoutInSeconds,
             bool retryOnRequestTimeout,
-            string proxyKeyName)
+            string proxyKeyName,
+            string authToken)
         {
             SetBaseValues(appUrl, serviceUsername, servicePassword, isCloudVersion, 
                 jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
                 requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, 
                 listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout,
-                proxyKeyName);
+                proxyKeyName, authToken);
         }
 
         private void SetBaseValues(string appUrl,
@@ -71,7 +73,8 @@ namespace Jira.Rest.Sdk
             HttpStatusCode[] listOfResponseCodeOnFailureToRetry,
             int requestTimeoutInSeconds,
             bool retryOnRequestTimeout,
-            string proxyKeyName)
+            string proxyKeyName,
+            string authToken)
         {
             if (appUrl.IsEmpty())
             {
@@ -91,6 +94,7 @@ namespace Jira.Rest.Sdk
             _appFullEndpoint = JiraUrl;
             _logPrefix = logPrefix;
             _proxyKeyName = proxyKeyName;
+            _authToken = authToken;
             PageSizeSearch = pageSizeSearchResult;
             RequestRetryTimes = requestRetryTimes;
             TimeToSleepBetweenRetryInMilliseconds = timeToSleepBetweenRetryInMilliseconds;
@@ -131,6 +135,7 @@ namespace Jira.Rest.Sdk
                          .SetEnvironment(_appFullEndpoint)
                          .PrepareRequest(statusHealthEndpoint)
                          .AddBasicAuthorizationHeader(_username, _password)
+                         .AddBearerAuthorizationHeader(_authToken)
                          .SetNtmlAuthentication()
                          .ProxyRequired(_proxyKeyName.HasValue())
                          .AddProxy(_proxyKeyName)
@@ -175,6 +180,7 @@ namespace Jira.Rest.Sdk
                 .SetEnvironment(_appFullEndpoint)
                 .PrepareRequest(requestUrl)
                 .AddBasicAuthorizationHeader(_username, _password)
+                .AddBearerAuthorizationHeader(_authToken)
                 .SetNtmlAuthentication()
                 .ProxyRequired(_proxyKeyName.HasValue())
                 .AddProxy(_proxyKeyName);

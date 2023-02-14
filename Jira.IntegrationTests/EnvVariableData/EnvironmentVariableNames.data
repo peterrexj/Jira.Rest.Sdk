@@ -1,6 +1,7 @@
 JiraServerUrl
 JiraUsername
 JiraPassword
+JiraAuthToken
 ProjectKey
 IssueFilter
 IssueNamePrefix

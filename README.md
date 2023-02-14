@@ -16,6 +16,13 @@ The request and response objects are having proper DTOS (data transfer or model 
      //Connect to cloud hosted Jira service
      var jiraService = new JiraService("jira url", "username", "password", isCloudVersion: false);
 
+     //Connect to cloud hosted Jira service using bearer token
+     var jiraService = new JiraService("jira url", 
+          serviceUsername: "", 
+          servicePassword: "", 
+          isCloudVersion: true,
+          authToken: "bearer token");
+
      //Get a test case by Key
      var issue = jiraService.IssueGetById("POC-100");
 
