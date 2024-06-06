@@ -12,7 +12,7 @@
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Copyright>Apache License 2.0</Copyright>
-		<Version>1.0.1.9</Version>
+		<Version>1.0.1.10</Version>
 		<Authors>Peter Joseph</Authors>
 		<Company>Peter Joseph</Company>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -23,7 +23,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="TestAny.Essentials.Api" Version="1.0.5.26" />
+		<PackageReference Include="TestAny.Essentials.Api" Version="1.0.6" />
 	</ItemGroup>
 
 	<ItemGroup>
