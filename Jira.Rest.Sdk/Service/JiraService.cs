@@ -1,11 +1,11 @@
 ﻿using Jira.Rest.Sdk.Dtos;
+using Newtonsoft.Json.Linq;
 using Pj.Library;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TestAny.Essentials.Api;
@@ -49,13 +49,12 @@ namespace Jira.Rest.Sdk
             bool retryOnRequestTimeout = false,
             string proxyKeyName = "",
             string authToken = "")
-                : base(appUrl, serviceUsername, servicePassword, isCloudVersion, 
+                : base(appUrl, serviceUsername, servicePassword, isCloudVersion,
                       jiraApiVersion, folderSeparator, logPrefix, pageSizeSearchResult,
-                      requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk, 
+                      requestRetryTimes, timeToSleepBetweenRetryInMilliseconds, assertResponseStatusOk,
                       listOfResponseCodeOnFailureToRetry, requestTimeoutInSeconds, retryOnRequestTimeout,
                       proxyKeyName, authToken)
         { }
-
 
         private IList<Project> ProjectsGet(IDictionary<string, string> projectSearchRequest)
         {
@@ -81,6 +80,17 @@ namespace Jira.Rest.Sdk
         }
 
         #region Issue Create/Update
+
+        /// <summary>
+        /// Creates a new issue in Jira.
+        /// </summary>
+        /// <param name="projectKey">The key of the project in which to create the issue.</param>
+        /// <param name="issueType">The type of the issue to create (e.g., Bug, Task).</param>
+        /// <param name="summary">A brief summary of the issue.</param>
+        /// <param name="description">A detailed description of the issue.</param>
+        /// <param name="priority">The priority of the issue (e.g., High, Medium, Low).</param>
+        /// <param name="parentKey">The key of the parent issue, if any. Defaults to null.</param>
+        /// <returns>The created issue.</returns>
         public Issue IssueCreate(string projectKey, string issueType,
             string summary,
             string description,
@@ -132,6 +142,14 @@ namespace Jira.Rest.Sdk
 
             return ToType<Issue>(jiraResponse.ResponseBody.ContentString);
         }
+
+        /// <summary>
+        /// Creates a link between two issues in Jira.
+        /// </summary>
+        /// <param name="linkType">The type of link to create (e.g., "blocks", "relates to").</param>
+        /// <param name="outwardIssueKey">The key of the outward issue.</param>
+        /// <param name="inwardIssueKey">The key of the inward issue.</param>
+        /// <param name="issueInfo">Optional additional information about the issue link. Defaults to null.</param>
         public void IssueLink(string linkType, string outwardIssueKey, string inwardIssueKey, Issue issueInfo = null)
         {
             if (linkType.IsEmpty() || inwardIssueKey.IsEmpty() || outwardIssueKey.IsEmpty()) return;
@@ -172,6 +190,14 @@ namespace Jira.Rest.Sdk
                 }
             }
         }
+
+        /// <summary>
+        /// Adds labels to an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to which labels will be added.</param>
+        /// <param name="appendToExisting">Indicates whether to append the new labels to the existing ones. If false, existing labels will be replaced.</param>
+        /// <param name="jiraIssueRead">Optional issue information. Defaults to null.</param>
+        /// <param name="labels">The labels to add to the issue.</param>
         public void IssueLabelAdd(string issueKey, bool appendToExisting, Issue jiraIssueRead = null, params string[] labels)
         {
             var updateListOfLabels = labels.ToList();
@@ -203,6 +229,12 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
         }
+
+        /// <summary>
+        /// Assigns an issue to a user by their account ID in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to be assigned.</param>
+        /// <param name="userId">The account ID of the user to whom the issue will be assigned.</param>
         public void IssueAssigneeByAccountId(string issueKey, string userId)
         {
             var reqBody = new { accountId = userId };
@@ -219,6 +251,12 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The issue assignment was not properly performed!");
         }
+
+        /// <summary>
+        /// Assigns an issue to a user by their username in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to be assigned.</param>
+        /// <param name="username">The username of the user to whom the issue will be assigned.</param>
         public void IssueAssigneeByName(string issueKey, string username)
         {
             var reqBody = new { name = username };
@@ -235,6 +273,14 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The issue assignment was not properly performed!");
         }
+
+        /// <summary>
+        /// Updates the components of an issue in Jira.
+        /// </summary>
+        /// <param name="components">A list of components to update.</param>
+        /// <param name="appendMode">Indicates whether to append the new components to the existing ones. If false, existing components will be replaced.</param>
+        /// <param name="issueKey">The key of the issue to update. Defaults to null.</param>
+        /// <param name="issueInfo">Optional issue information. Defaults to null.</param>
         public void IssueComponentUpdate(List<string> components, bool appendMode, string issueKey = null, Issue issueInfo = null)
         {
             if (issueKey.IsEmpty() && issueInfo == null) return;
@@ -281,6 +327,14 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
         }
+
+        /// <summary>
+        /// Updates the affected versions of an issue in Jira.
+        /// </summary>
+        /// <param name="affectedVersion">A list of affected versions to update.</param>
+        /// <param name="appendMode">Indicates whether to append the new versions to the existing ones. If false, existing versions will be replaced.</param>
+        /// <param name="issueKey">The key of the issue to update. Defaults to null.</param>
+        /// <param name="issueInfo">Optional issue information. Defaults to null.</param>
         public void IssueAffectedVersionUpdate(List<string> affectedVersion, bool appendMode, string issueKey = null, Issue issueInfo = null)
         {
             if (issueKey.IsEmpty() && issueInfo == null) return;
@@ -324,6 +378,12 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
         }
+
+        /// <summary>
+        /// Removes the affected versions from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue from which to remove affected versions. Defaults to null.</param>
+        /// <param name="issueInfo">Optional issue information. Defaults to null.</param>
         public void IssueAffectedVersionRemove(string issueKey = null, Issue issueInfo = null)
         {
             if (issueKey.IsEmpty() && issueInfo == null) return;
@@ -353,6 +413,14 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
         }
+
+        /// <summary>
+        /// Updates the fix versions of an issue in Jira.
+        /// </summary>
+        /// <param name="fixVersion">A list of fix versions to update.</param>
+        /// <param name="appendMode">Indicates whether to append the new versions to the existing ones. If false, existing versions will be replaced.</param>
+        /// <param name="issueKey">The key of the issue to update. Defaults to null.</param>
+        /// <param name="issueInfo">Optional issue information. Defaults to null.</param>
         public void IssueFixVersionUpdate(List<string> fixVersion, bool appendMode, string issueKey = null, Issue issueInfo = null)
         {
             if (issueKey.IsEmpty() && issueInfo == null) return;
@@ -396,6 +464,12 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The fix version was not updated!");
         }
+
+        /// <summary>
+        /// Removes the fix versions from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue from which to remove fix versions. Defaults to null.</param>
+        /// <param name="issueInfo">Optional issue information. Defaults to null.</param>
         public void IssueFixVersionRemove(string issueKey = null, Issue issueInfo = null)
         {
             if (issueKey.IsEmpty() && issueInfo == null) return;
@@ -425,6 +499,12 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The fix version was not updated!");
         }
+
+        /// <summary>
+        /// Updates the description of an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to update.</param>
+        /// <param name="description">The new description for the issue.</param>
         public void IssueDescriptionUpdate(string issueKey, string description)
         {
             if (issueKey.IsEmpty()) return;
@@ -448,6 +528,11 @@ namespace Jira.Rest.Sdk
                 throw new Exception("The component was not updated!");
         }
 
+        /// <summary>
+        /// Deletes an issue in Jira.
+        /// </summary>
+        /// <param name="issueIdOrKey">The ID or key of the issue to delete.</param>
+        /// <param name="deleteSubtasks">Indicates whether to delete subtasks of the issue. Defaults to false.</param>
         public void IssueDelete(string issueIdOrKey, bool deleteSubtasks = false)
         {
             var jiraResponse = OpenRequest($" /rest/api/{JiraApiVersion}/issue/{issueIdOrKey}")
@@ -457,10 +542,74 @@ namespace Jira.Rest.Sdk
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
                 throw new Exception("The component was not updated!");
         }
+
+        /// <summary>
+        /// Retrieves metadata for a specific issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve metadata.</param>
+        /// <returns>A list of issue metadata.</returns>
+        public List<IssueMetadata> IssueMetadataGet(string issueKey)
+        {
+            var response = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/editmeta")
+               .SetTimeout(RequestTimeoutInSeconds)
+               .GetWithRetry(assertOk: AssertResponseStatusOk,
+                  timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                  retryOption: RequestRetryTimes,
+                  httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                  retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            response.AssertResponseStatusForSuccess();
+
+            List<IssueMetadata> result = new();
+            var fieldsFromServer = response.ResponseBody.FilterJsonContent("$.fields.*");
+
+            foreach (var field in fieldsFromServer)
+            {
+                try
+                {
+                    var data = SerializationHelper.DeSerializeJsonFromString<IssueMetadataDetail>(field);
+                    result.Add(new IssueMetadata { Name = data.Name, Metadata = data });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error deserializing item: {ex.Message}");
+                }
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Retrieves the changelogs for a specific issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve changelogs.</param>
+        /// <returns>A list of changelog entries for the issue.</returns>
+        public List<ChangelogEntry> IssueChangelogsGet(string issueKey)
+        {
+            return SearchFull<ChangelogEntry>(
+                new { issueKey = issueKey }.GetPropertyValuesV2(),
+                (s) => IssueChangelogsGet(s), predicate: null, breakSearchOnFirstConditionValid: false).ToList();
+        }
+        private Pagination<ChangelogEntry> IssueChangelogsGet(IDictionary<string, string> request)
+        {
+            var response = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{request["issueKey"]}/changelog")
+                .SetQueryParams(request)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            response.AssertResponseStatusForSuccess();
+            return ToType<Pagination<ChangelogEntry>>(response.ResponseBody.ContentString);
+        }
         #endregion
 
-        
 
+        /// <summary>
+        /// Retrieves a list of all projects in Jira.
+        /// </summary>
+        /// <returns>A list of all projects.</returns>
         public List<Project> ProjectsGet()
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project")
@@ -475,6 +624,12 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<List<Project>>(jiraResponse.ResponseBody.ContentString);
         }
+
+        /// <summary>
+        /// Retrieves a list of projects in Jira that match the given name or key.
+        /// </summary>
+        /// <param name="nameOrKey">The name or key of the projects to retrieve.</param>
+        /// <returns>A list of projects that match the given name or key.</returns>
         public List<Project> ProjectsGetByNameOrKey(string nameOrKey)
         {
             return ProjectsGet()
@@ -482,6 +637,11 @@ namespace Jira.Rest.Sdk
                 .ToList();
         }
 
+        /// <summary>
+        /// Retrieves a project in Jira by its ID.
+        /// </summary>
+        /// <param name="issueKey">The ID of the project to retrieve.</param>
+        /// <returns>The project that matches the given ID.</returns>
         public Project ProjectGetById(string issueKey)
         {
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/{issueKey}")
@@ -510,6 +670,14 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<Pagination<Project>>(jiraResponse.ResponseBody.ContentJson);
         }
+
+        /// <summary>
+        /// Searches for projects in Jira based on a query and an optional predicate.
+        /// </summary>
+        /// <param name="query">The query string to search for projects.</param>
+        /// <param name="predicate">An optional predicate to filter the projects.</param>
+        /// <param name="breakSearchOnFirstConditionValid">Indicates whether to stop searching when the first valid condition is met. Defaults to true.</param>
+        /// <returns>A list of projects that match the query and predicate.</returns>
         public List<Project> ProjectSearch(string query, Func<Project, bool> predicate = null, bool breakSearchOnFirstConditionValid = true)
         {
             if (JiraApiVersion.ToInteger() <= 2)
@@ -520,21 +688,82 @@ namespace Jira.Rest.Sdk
                 (s) => ProjectSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
         }
 
-
-        public Issue IssueGetById(string issueKey)
+        /// <summary>
+        /// Retrieves an issue from Jira by its key.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to retrieve.</param>
+        /// <param name="fields">A comma-separated list of fields to include in the response. Defaults to "*all" to include all fields.</param>
+        /// <param name="extractDynamicFields">Indicates whether to extract dynamic fields from the issue. Defaults to false.</param>
+        /// <param name="dynamicFieldsIncludeEmptyValues">Indicates whether to include empty values for dynamic fields. Defaults to true.</param>
+        /// <returns>The issue corresponding to the specified key.</returns>
+        public Issue IssueGetById(string issueKey, string fields = "*all",
+            bool extractDynamicFields = false, bool dynamicFieldsIncludeEmptyValues = true)
         {
             Log($"Trying to get jira issue [{issueKey}]");
+
+            ParameterCollection paramCollection = new();
+            paramCollection.Add("fields", fields);
+
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
-               .SetTimeout(RequestTimeoutInSeconds)
-               .GetWithRetry(assertOk: AssertResponseStatusOk,
+                .SetQueryParams(paramCollection)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
                    retryOption: RequestRetryTimes,
                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
-            return ToType<Issue>(jiraResponse.ResponseBody.ContentString);
+
+            if (extractDynamicFields)
+            {
+                var issue = ToType<Issue>(jiraResponse.ResponseBody.ContentString);
+                issue.FieldsDynamic = new Dictionary<string, dynamic>();
+
+                var jsonObject = JObject.Parse(jiraResponse.ResponseBody.ContentString);
+                var fieldsInResponse = jsonObject.SelectToken("$.fields") as JObject;
+                foreach (var field in fieldsInResponse)
+                {
+                    try
+                    {
+                        if (field.Value == null) continue;
+                        if (dynamicFieldsIncludeEmptyValues)
+                        {
+                            issue.FieldsDynamic.Add(field.Key, field.Value);
+                        }
+                        else
+                        {
+                            var keyValuePair = new KeyValuePair<string, JToken>(field.Key, field.Value);
+                            if (keyValuePair.Value != null && !IsEmptyToken(keyValuePair.Value))
+                            {
+                                issue.FieldsDynamic.Add(field.Key, field.Value);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the exception or handle it as needed
+                        Console.WriteLine($"Error deserializing item: {ex.Message}");
+                    }
+                }
+
+                return issue;
+            }
+            else
+            {
+                return ToType<Issue>(jiraResponse.ResponseBody.ContentString);
+            }
         }
+
+        private bool IsEmptyToken(JToken token)
+        {
+            return token.Type == JTokenType.Null ||
+                   (token.Type == JTokenType.String && token.ToString() == string.Empty) ||
+                   (token.Type == JTokenType.Array && !token.HasValues) ||
+                   (token.Type == JTokenType.Object && !token.HasValues);
+        }
+
+
         internal Pagination<Issue> IssueSearch(IDictionary<string, string> issueSearchRequest)
         {
             //Using POST to handle large query string
@@ -551,12 +780,21 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
             return ToType<Pagination<Issue>>(jiraResponse.ResponseBody.ContentJson);
         }
+
+        /// <summary>
+        /// Searches for issues in Jira using JQL (Jira Query Language).
+        /// </summary>
+        /// <param name="jql">The JQL query string to use for searching issues.</param>
+        /// <param name="predicate">An optional predicate to filter the results. Defaults to null.</param>
+        /// <param name="breakSearchOnFirstConditionValid">Indicates whether to stop the search when the first condition is met. Defaults to true.</param>
+        /// <returns>A list of issues that match the JQL query and optional predicate.</returns>
         public List<Issue> IssueSearch(string jql, Func<Issue, bool> predicate = null, bool breakSearchOnFirstConditionValid = true)
         {
             return SearchFull<Issue>(
                 new IssueSearchRequest { jql = jql }.GetPropertyValuesV2(),
                 (s) => IssueSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
         }
+
         internal IList<T> SearchFull<T>(
             IDictionary<string, string> searchQuery,
             Func<IDictionary<string, string>, Pagination<T>> search,
@@ -676,7 +914,6 @@ namespace Jira.Rest.Sdk
         }
 
         private ConcurrentDictionary<string, TestApiResponse> _ProjectMedaData = new ConcurrentDictionary<string, TestApiResponse>();
-
         private TestApiResponse ProjectMetaInfoCache(string projectKey)
         {
             if (!_ProjectMedaData.ContainsKey(projectKey))
