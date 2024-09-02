@@ -79,7 +79,7 @@ namespace Jira.Rest.Sdk
             return ToType<IList<Project>>(jiraResponse.ResponseBody.ContentString);
         }
 
-        #region Issue Create/Update
+        #region Issues
 
         /// <summary>
         /// Creates a new issue in Jira.
@@ -603,8 +603,153 @@ namespace Jira.Rest.Sdk
             response.AssertResponseStatusForSuccess();
             return ToType<Pagination<ChangelogEntry>>(response.ResponseBody.ContentString);
         }
+
+        /// <summary>
+        /// Retrieves an issue from Jira by its key.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to retrieve.</param>
+        /// <param name="fields">A comma-separated list of fields to include in the response. Defaults to "*all" to include all fields.</param>
+        /// <param name="extractDynamicFields">Indicates whether to extract dynamic fields from the issue. Defaults to false.</param>
+        /// <param name="dynamicFieldsIncludeEmptyValues">Indicates whether to include empty values for dynamic fields. Defaults to true.</param>
+        /// <returns>The issue corresponding to the specified key.</returns>
+        public Issue IssueGetById(string issueKey, string fields = "*all",
+            bool extractDynamicFields = false, bool dynamicFieldsIncludeEmptyValues = true)
+        {
+            Log($"Trying to get jira issue [{issueKey}]");
+
+            ParameterCollection paramCollection = new();
+            paramCollection.Add("fields", fields);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
+                .SetQueryParams(paramCollection)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            if (extractDynamicFields)
+            {
+                var issue = ToType<Issue>(jiraResponse.ResponseBody.ContentString);
+                issue.FieldsDynamic = new Dictionary<string, dynamic>();
+
+                var jsonObject = JObject.Parse(jiraResponse.ResponseBody.ContentString);
+                var fieldsInResponse = jsonObject.SelectToken("$.fields") as JObject;
+                foreach (var field in fieldsInResponse)
+                {
+                    try
+                    {
+                        if (field.Value == null) continue;
+                        if (dynamicFieldsIncludeEmptyValues)
+                        {
+                            issue.FieldsDynamic.Add(field.Key, field.Value);
+                        }
+                        else
+                        {
+                            var keyValuePair = new KeyValuePair<string, JToken>(field.Key, field.Value);
+                            if (keyValuePair.Value != null && !IsEmptyToken(keyValuePair.Value))
+                            {
+                                issue.FieldsDynamic.Add(field.Key, field.Value);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log the exception or handle it as needed
+                        Console.WriteLine($"Error deserializing item: {ex.Message}");
+                    }
+                }
+
+                return issue;
+            }
+            else
+            {
+                return ToType<Issue>(jiraResponse.ResponseBody.ContentString);
+            }
+        }
+
+        internal Pagination<Issue> IssueSearch(IDictionary<string, string> issueSearchRequest)
+        {
+            //Using POST to handle large query string
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search")
+                .SetJsonBody(issueSearchRequest)
+                //.SetQueryParams(issueSearchRequest)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<Pagination<Issue>>(jiraResponse.ResponseBody.ContentJson);
+        }
+
+        /// <summary>
+        /// Searches for issues in Jira using JQL (Jira Query Language).
+        /// </summary>
+        /// <param name="jql">The JQL query string to use for searching issues.</param>
+        /// <param name="predicate">An optional predicate to filter the results. Defaults to null.</param>
+        /// <param name="breakSearchOnFirstConditionValid">Indicates whether to stop the search when the first condition is met. Defaults to true.</param>
+        /// <returns>A list of issues that match the JQL query and optional predicate.</returns>
+        public List<Issue> IssueSearch(string jql, Func<Issue, bool> predicate = null, bool breakSearchOnFirstConditionValid = true)
+        {
+            return SearchFull<Issue>(
+                new IssueSearchRequest { jql = jql }.GetPropertyValuesV2(),
+                (s) => IssueSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
+        }
+
+        /// <summary>
+        /// Retrieves metadata for creating an issue in Jira for a specific project and optionally an issue type.
+        /// </summary>
+        /// <param name="project">The key of the project for which to retrieve issue creation metadata.</param>
+        /// <param name="issueType">The type of the issue for which to retrieve metadata. Optional.</param>
+        /// <returns>A TestApiResponse containing the issue creation metadata.</returns>
+        public TestApiResponse IssueCreateMetaDataGet(string project, string issueType = null)
+        {
+            var qryParam = new ParameterCollection();
+            qryParam.Add("projectKeys", project);
+            if (issueType.HasValue())
+            {
+                qryParam.Add("issuetypeNames", issueType);
+            }
+            qryParam.Add("expand", "projects.issuetypes.fields");
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/createmeta")
+               .SetQueryParams(qryParam)
+               .SetTimeout(RequestTimeoutInSeconds)
+               .GetWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            return jiraResponse;
+        }
+
+        /// <summary>
+        /// Retrieves metadata for the available issue link types in Jira.
+        /// </summary>
+        /// <returns>A TestApiResponse containing the issue link types metadata.</returns>
+        public TestApiResponse IssueLinkTypesMetadataGet()
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLinkType")
+               .SetTimeout(RequestTimeoutInSeconds)
+               .GetWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            return jiraResponse;
+        }
+
         #endregion
 
+        #region Projects
 
         /// <summary>
         /// Retrieves a list of all projects in Jira.
@@ -688,111 +833,101 @@ namespace Jira.Rest.Sdk
                 (s) => ProjectSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
         }
 
-        /// <summary>
-        /// Retrieves an issue from Jira by its key.
-        /// </summary>
-        /// <param name="issueKey">The key of the issue to retrieve.</param>
-        /// <param name="fields">A comma-separated list of fields to include in the response. Defaults to "*all" to include all fields.</param>
-        /// <param name="extractDynamicFields">Indicates whether to extract dynamic fields from the issue. Defaults to false.</param>
-        /// <param name="dynamicFieldsIncludeEmptyValues">Indicates whether to include empty values for dynamic fields. Defaults to true.</param>
-        /// <returns>The issue corresponding to the specified key.</returns>
-        public Issue IssueGetById(string issueKey, string fields = "*all",
-            bool extractDynamicFields = false, bool dynamicFieldsIncludeEmptyValues = true)
+        private ConcurrentDictionary<string, TestApiResponse> _ProjectMedaData = new ConcurrentDictionary<string, TestApiResponse>();
+        private TestApiResponse ProjectMetaInfoCache(string projectKey)
         {
-            Log($"Trying to get jira issue [{issueKey}]");
+            if (!_ProjectMedaData.ContainsKey(projectKey))
+            {
+                _ProjectMedaData.AddOrUpdate(projectKey, IssueCreateMetaDataGet(projectKey));
+            }
+            return _ProjectMedaData[projectKey];
+        }
 
-            ParameterCollection paramCollection = new();
-            paramCollection.Add("fields", fields);
+        #endregion
 
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
-                .SetQueryParams(paramCollection)
+        #region Users
+
+        /// <summary>
+        /// Retrieves the account information of the currently logged-in user in Jira.
+        /// </summary>
+        /// <returns>An Assignee object containing the account information of the logged-in user.</returns>
+        public Assignee LoggedInUserAccount()
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user/search")
+              .SetQueryParams(new ParameterCollection { { "query", _username } })
+              .SetTimeout(RequestTimeoutInSeconds)
+              .GetWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ((List<Assignee>)ToType<List<Assignee>>(jiraResponse.ResponseBody.ContentJson))?.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Retrieves the account information of a user in Jira by their account ID.
+        /// </summary>
+        /// <param name="accountId">The account ID of the user to retrieve.</param>
+        /// <returns>An Assignee object containing the account information of the specified user.</returns>
+        public Assignee UserAccountGet(string accountId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user")
+                .SetQueryParams(new ParameterCollection { { "accountId", accountId } })
                 .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
 
-            if (extractDynamicFields)
-            {
-                var issue = ToType<Issue>(jiraResponse.ResponseBody.ContentString);
-                issue.FieldsDynamic = new Dictionary<string, dynamic>();
-
-                var jsonObject = JObject.Parse(jiraResponse.ResponseBody.ContentString);
-                var fieldsInResponse = jsonObject.SelectToken("$.fields") as JObject;
-                foreach (var field in fieldsInResponse)
-                {
-                    try
-                    {
-                        if (field.Value == null) continue;
-                        if (dynamicFieldsIncludeEmptyValues)
-                        {
-                            issue.FieldsDynamic.Add(field.Key, field.Value);
-                        }
-                        else
-                        {
-                            var keyValuePair = new KeyValuePair<string, JToken>(field.Key, field.Value);
-                            if (keyValuePair.Value != null && !IsEmptyToken(keyValuePair.Value))
-                            {
-                                issue.FieldsDynamic.Add(field.Key, field.Value);
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log the exception or handle it as needed
-                        Console.WriteLine($"Error deserializing item: {ex.Message}");
-                    }
-                }
-
-                return issue;
-            }
-            else
-            {
-                return ToType<Issue>(jiraResponse.ResponseBody.ContentString);
-            }
+            return ToType<Assignee>(jiraResponse.ResponseBody.ContentJson);
         }
 
-        private bool IsEmptyToken(JToken token)
-        {
-            return token.Type == JTokenType.Null ||
-                   (token.Type == JTokenType.String && token.ToString() == string.Empty) ||
-                   (token.Type == JTokenType.Array && !token.HasValues) ||
-                   (token.Type == JTokenType.Object && !token.HasValues);
-        }
+        #endregion
 
-
-        internal Pagination<Issue> IssueSearch(IDictionary<string, string> issueSearchRequest)
+        /// <summary>
+        /// Retrieves the version information in Jira by the version ID.
+        /// </summary>
+        /// <param name="versionId">The ID of the version to retrieve.</param>
+        /// <returns>A Version object containing the information of the specified version.</returns>
+        public Version VersionGet(string versionId)
         {
-            //Using POST to handle large query string
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search")
-                .SetJsonBody(issueSearchRequest)
-                //.SetQueryParams(issueSearchRequest)
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/version/{versionId}")
                 .SetTimeout(RequestTimeoutInSeconds)
-                .PostWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
-            return ToType<Pagination<Issue>>(jiraResponse.ResponseBody.ContentJson);
+
+            return ToType<Version>(jiraResponse.ResponseBody.ContentJson);
         }
 
         /// <summary>
-        /// Searches for issues in Jira using JQL (Jira Query Language).
+        /// Retrieves the component information in Jira by the component ID.
         /// </summary>
-        /// <param name="jql">The JQL query string to use for searching issues.</param>
-        /// <param name="predicate">An optional predicate to filter the results. Defaults to null.</param>
-        /// <param name="breakSearchOnFirstConditionValid">Indicates whether to stop the search when the first condition is met. Defaults to true.</param>
-        /// <returns>A list of issues that match the JQL query and optional predicate.</returns>
-        public List<Issue> IssueSearch(string jql, Func<Issue, bool> predicate = null, bool breakSearchOnFirstConditionValid = true)
+        /// <param name="componentId">The ID of the component to retrieve.</param>
+        /// <returns>A ProjectComponent object containing the information of the specified component.</returns>
+        public ProjectComponent ComponentGet(string componentId)
         {
-            return SearchFull<Issue>(
-                new IssueSearchRequest { jql = jql }.GetPropertyValuesV2(),
-                (s) => IssueSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/component/{componentId}")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ToType<ProjectComponent>(jiraResponse.ResponseBody.ContentJson);
         }
 
         internal IList<T> SearchFull<T>(
@@ -878,110 +1013,12 @@ namespace Jira.Rest.Sdk
             return results.ToList();
         }
 
-
-        public TestApiResponse IssueCreateMetaDataGet(string project, string issueType = null)
+        private bool IsEmptyToken(JToken token)
         {
-            var qryParam = new ParameterCollection();
-            qryParam.Add("projectKeys", project);
-            if (issueType.HasValue())
-            {
-                qryParam.Add("issuetypeNames", issueType);
-            }
-            qryParam.Add("expand", "projects.issuetypes.fields");
-
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/createmeta")
-               .SetQueryParams(qryParam)
-               .SetTimeout(RequestTimeoutInSeconds)
-               .GetWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            return jiraResponse;
-        }
-        public TestApiResponse IssueLinkTypesMetadataGet()
-        {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLinkType")
-               .SetTimeout(RequestTimeoutInSeconds)
-               .GetWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            return jiraResponse;
-        }
-
-        private ConcurrentDictionary<string, TestApiResponse> _ProjectMedaData = new ConcurrentDictionary<string, TestApiResponse>();
-        private TestApiResponse ProjectMetaInfoCache(string projectKey)
-        {
-            if (!_ProjectMedaData.ContainsKey(projectKey))
-            {
-                _ProjectMedaData.AddOrUpdate(projectKey, IssueCreateMetaDataGet(projectKey));
-            }
-            return _ProjectMedaData[projectKey];
-        }
-
-        public Assignee LoggedInUserAccount()
-        {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user/search")
-              .SetQueryParams(new ParameterCollection { { "query", _username } })
-              .SetTimeout(RequestTimeoutInSeconds)
-              .GetWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            jiraResponse.AssertResponseStatusForSuccess();
-
-            return ((List<Assignee>)ToType<List<Assignee>>(jiraResponse.ResponseBody.ContentJson))?.FirstOrDefault();
-        }
-
-        public Assignee UserAccountGet(string accountId)
-        {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user")
-                .SetQueryParams(new ParameterCollection { { "accountId", accountId } })
-                .SetTimeout(RequestTimeoutInSeconds)
-                .GetWithRetry(assertOk: AssertResponseStatusOk,
-                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                    retryOption: RequestRetryTimes,
-                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                    retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            jiraResponse.AssertResponseStatusForSuccess();
-
-            return ToType<Assignee>(jiraResponse.ResponseBody.ContentJson);
-        }
-
-        public Version VersionGet(string versionId)
-        {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/version/{versionId}")
-                .SetTimeout(RequestTimeoutInSeconds)
-                .GetWithRetry(assertOk: AssertResponseStatusOk,
-                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                    retryOption: RequestRetryTimes,
-                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                    retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            jiraResponse.AssertResponseStatusForSuccess();
-
-            return ToType<Version>(jiraResponse.ResponseBody.ContentJson);
-        }
-        public ProjectComponent ComponentGet(string componentId)
-        {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/component/{componentId}")
-                .SetTimeout(RequestTimeoutInSeconds)
-                .GetWithRetry(assertOk: AssertResponseStatusOk,
-                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                    retryOption: RequestRetryTimes,
-                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                    retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            jiraResponse.AssertResponseStatusForSuccess();
-
-            return ToType<ProjectComponent>(jiraResponse.ResponseBody.ContentJson);
+            return token.Type == JTokenType.Null ||
+                   (token.Type == JTokenType.String && token.ToString() == string.Empty) ||
+                   (token.Type == JTokenType.Array && !token.HasValues) ||
+                   (token.Type == JTokenType.Object && !token.HasValues);
         }
     }
 }
