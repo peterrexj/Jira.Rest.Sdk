@@ -22,6 +22,8 @@ namespace Jira.Rest.Sdk.Dtos
         [JsonProperty("fields", NullValueHandling = NullValueHandling.Ignore)]
         public Fields Fields { get; set; }
 
+        public Dictionary<string, dynamic> FieldsDynamic { get; set; }
+
         [JsonProperty("names", NullValueHandling = NullValueHandling.Ignore)]
         public Names Names { get; set; }
     }

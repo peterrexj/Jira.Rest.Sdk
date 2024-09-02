@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using Jira.Rest.Sdk.Dtos;
+using Newtonsoft.Json;
 using Pj.Library;
 using System;
 using System.Collections.Generic;
 using System.Net;
-using System.Text;
 using TestAny.Essentials.Api;
 using TestAny.Essentials.Core;
 
@@ -186,6 +186,21 @@ namespace Jira.Rest.Sdk
                 .AddProxy(_proxyKeyName);
         }
 
-       
+
+        protected long SearchCount<T>(IDictionary<string, string> searchQuery,
+            Func<IDictionary<string, string>, Pagination<T>> search)
+        {
+            if (searchQuery.ContainsKey("maxResults")) searchQuery["maxResults"] = "1"; else searchQuery.Add("maxResults", "1");
+            if (searchQuery.ContainsKey("startAt")) searchQuery["startAt"] = "0"; else searchQuery.Add("startAt", "0");
+
+            var resp = search(searchQuery);
+
+            if (resp != null && resp.total > 0)
+            {
+                return resp.total;
+            }
+
+            return 0;
+        }
     }
 }
