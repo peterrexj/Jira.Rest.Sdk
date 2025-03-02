@@ -8,12 +8,21 @@ namespace Jira.Rest.Sdk.Dtos
     public class IssueSearchRequest : SearchRequestBase
     {
         [JsonProperty("jql", NullValueHandling = NullValueHandling.Ignore)]
-        public string jql { get; set; }
+        public string Jql { get; set; }
 
         [JsonProperty("fields", NullValueHandling = NullValueHandling.Ignore)]
-        public string[] fields { get; set; }
+        public string[]? Fields { get; set; }
+
+        [JsonProperty("fieldsByKeys", NullValueHandling = NullValueHandling.Ignore)]
+        public bool FieldsByKeys { get; set; }
 
         [JsonProperty("expand", NullValueHandling = NullValueHandling.Ignore)]
-        public string expand { get; set; }
+        public string? Expand { get; set; }
+
+        [JsonProperty("properties", NullValueHandling = NullValueHandling.Ignore)]
+        public string[]? Properties { get; set; }
+
+        [JsonProperty("reconcileIssues", NullValueHandling = NullValueHandling.Ignore)]
+        public int[]? ReconcileIssues { get; set; }
     }
 }

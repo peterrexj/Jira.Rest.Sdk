@@ -20,6 +20,7 @@
 		<Description>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/product-description.txt"))</Description>
 		<PackageTags>jira selenium automation c# api essentials</PackageTags>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
