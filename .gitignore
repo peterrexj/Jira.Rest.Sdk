@@ -349,3 +349,8 @@ MigrationBackup/
 # Ionide (cross platform F# VS Code tools) working folder
 .ionide/
 /local-settings*.json
+.idea/.idea.Jira.Rest.Sdk/.idea/workspace.xml
+.idea/.idea.Jira.Rest.Sdk/.idea/encodings.xml
+.idea/.idea.Jira.Rest.Sdk/.idea/indexLayout.xml
+.idea/.idea.Jira.Rest.Sdk/.idea/projectSettingsUpdater.xml
+.idea/.idea.Jira.Rest.Sdk/.idea/vcs.xml

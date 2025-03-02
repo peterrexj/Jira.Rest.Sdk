@@ -12,7 +12,7 @@
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Copyright>Apache License 2.0</Copyright>
-		<Version>1.0.1.10</Version>
+		<Version>1.0.3</Version>
 		<Authors>Peter Joseph</Authors>
 		<Company>Peter Joseph</Company>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
@@ -20,17 +20,18 @@
 		<Description>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/product-description.txt"))</Description>
 		<PackageTags>jira selenium automation c# api essentials</PackageTags>
 		<PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
-
-	<ItemGroup>
-		<PackageReference Include="TestAny.Essentials.Api" Version="1.0.7" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<None Include="..\LICENSE" Link="LICENSE">
 			<PackagePath></PackagePath>
 			<Pack>True</Pack>
 		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\..\Selenium.Essentials\src\TestAny.Essentials.Api\TestAny.Essentials.Api.csproj" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="product-description.txt">

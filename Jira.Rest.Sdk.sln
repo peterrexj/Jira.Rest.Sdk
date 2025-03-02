@@ -7,6 +7,16 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jira.Rest.Sdk", "Jira.Rest.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Jira.IntegrationTests", "Jira.IntegrationTests\Jira.IntegrationTests.csproj", "{B974EDB1-65E7-4A1F-8991-15C98A7B326A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "external", "external", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestAny.Essentials.Api", "..\Selenium.Essentials\src\TestAny.Essentials.Api\TestAny.Essentials.Api.csproj", "{70E942DF-0275-1E2B-4D00-2A4031711AEA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestAny.Essentials.Core", "..\Selenium.Essentials\src\TestAny.Essentials.Core\TestAny.Essentials.Core.csproj", "{1B5EF83C-7697-8A1D-5500-55AE3F993D60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pj.Library", "..\PjLibrary\Pj.Library\Pj.Library.csproj", "{23434016-1BF6-6CF7-4B21-0EC3D5C45906}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pj.Library.ThirdParty", "..\PjLibrary\Pj.Library.ThirdParty\Pj.Library.ThirdParty.csproj", "{B69BDCBE-13C8-EC40-DE34-0212927F95FB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,9 +31,31 @@ Global
 		{B974EDB1-65E7-4A1F-8991-15C98A7B326A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B974EDB1-65E7-4A1F-8991-15C98A7B326A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B974EDB1-65E7-4A1F-8991-15C98A7B326A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70E942DF-0275-1E2B-4D00-2A4031711AEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70E942DF-0275-1E2B-4D00-2A4031711AEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70E942DF-0275-1E2B-4D00-2A4031711AEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70E942DF-0275-1E2B-4D00-2A4031711AEA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B5EF83C-7697-8A1D-5500-55AE3F993D60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B5EF83C-7697-8A1D-5500-55AE3F993D60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B5EF83C-7697-8A1D-5500-55AE3F993D60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B5EF83C-7697-8A1D-5500-55AE3F993D60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23434016-1BF6-6CF7-4B21-0EC3D5C45906}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23434016-1BF6-6CF7-4B21-0EC3D5C45906}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23434016-1BF6-6CF7-4B21-0EC3D5C45906}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23434016-1BF6-6CF7-4B21-0EC3D5C45906}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B69BDCBE-13C8-EC40-DE34-0212927F95FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B69BDCBE-13C8-EC40-DE34-0212927F95FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B69BDCBE-13C8-EC40-DE34-0212927F95FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B69BDCBE-13C8-EC40-DE34-0212927F95FB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{70E942DF-0275-1E2B-4D00-2A4031711AEA} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{1B5EF83C-7697-8A1D-5500-55AE3F993D60} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{23434016-1BF6-6CF7-4B21-0EC3D5C45906} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{B69BDCBE-13C8-EC40-DE34-0212927F95FB} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {195391B1-AF72-42AD-B8AF-5C5E7C7156E4}

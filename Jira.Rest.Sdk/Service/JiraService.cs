@@ -674,7 +674,7 @@ namespace Jira.Rest.Sdk
         internal Pagination<Issue> IssueSearch(IDictionary<string, string> issueSearchRequest)
         {
             //Using POST to handle large query string
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search")
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search/jql")
                 .SetJsonBody(issueSearchRequest)
                 //.SetQueryParams(issueSearchRequest)
                 .SetTimeout(RequestTimeoutInSeconds)
@@ -688,19 +688,36 @@ namespace Jira.Rest.Sdk
             return ToType<Pagination<Issue>>(jiraResponse.ResponseBody.ContentJson);
         }
 
+        //"TODO: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
+        //"TODO: https://developer.atlassian.com/changelog/#CHANGE-2046
+
         /// <summary>
         /// Searches for issues in Jira using JQL (Jira Query Language).
+        /// Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
         /// </summary>
         /// <param name="jql">The JQL query string to use for searching issues.</param>
+        /// <param name="fields">A list of fields to return for each issue. By default, all navigable fields are returned.</param>
+        /// <param name="fieldsByKeys">Whether the fields parameter accepts field IDs instead of field names. Default is false.</param>
+        /// <param name="expand">A comma-separated list of the parameters to expand.</param>
+        /// <param name="properties">A list of issue properties to return for each issue. By default, no properties are returned.</param>
+        /// <param name="reconcileIssues">A list of issue IDs to reconcile. Default is null.</param>
         /// <param name="predicate">An optional predicate to filter the results. Defaults to null.</param>
         /// <param name="breakSearchOnFirstConditionValid">Indicates whether to stop the search when the first condition is met. Defaults to true.</param>
         /// <returns>A list of issues that match the JQL query and optional predicate.</returns>
-        public List<Issue> IssueSearch(string jql, Func<Issue, bool> predicate = null, bool breakSearchOnFirstConditionValid = true)
+        public List<Issue> IssueSearch(
+            string jql,
+            string[]? fields = null,
+            bool fieldsByKeys = false,
+            string? expand = null,
+            string[]? properties = null,
+            int[]? reconcileIssues = null,
+            Func<Issue, bool>? predicate = null, bool breakSearchOnFirstConditionValid = true)
         {
-            return SearchFull<Issue>(
-                new IssueSearchRequest { jql = jql }.GetPropertyValuesV2(),
+            return SearchFullVersion2<Issue>(
+                new IssueSearchRequest { Jql = jql, Fields = fields, FieldsByKeys = fieldsByKeys, Expand = expand, Properties = properties, ReconcileIssues = reconcileIssues }.GetPropertyValuesV2(),
                 (s) => IssueSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
         }
+
 
         /// <summary>
         /// Retrieves metadata for creating an issue in Jira for a specific project and optionally an issue type.
@@ -928,6 +945,89 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
 
             return ToType<ProjectComponent>(jiraResponse.ResponseBody.ContentJson);
+        }
+
+        internal IList<T> SearchFullVersion2<T>(
+            IDictionary<string, string>? searchQuery,
+            Func<IDictionary<string, string>, Pagination<T>> search,
+            Func<T, bool>? predicate = null,
+            bool breakSearchOnFirstConditionValid = true)
+        {
+            var results = new ConcurrentBag<T>();
+            var maxResults = 50;
+            searchQuery ??= new Dictionary<string, string>();
+            if (searchQuery.ContainsKey("maxResults")) searchQuery["maxResults"] = maxResults.ToString(); else searchQuery.Add("maxResults", maxResults.ToString());
+            if (searchQuery.ContainsKey("nextPageToken")) searchQuery.Remove("nextPageToken");
+
+            var resp = search(searchQuery);
+
+            if (predicate != null)
+            {
+                foreach (var value in resp.PaginatedItems)
+                {
+                    if (predicate(value) == true)
+                    {
+                        results.Add(value);
+                        if (breakSearchOnFirstConditionValid)
+                        {
+                            return results.ToList();
+                        }
+                    }
+                }
+            }
+            else
+            {
+                resp.PaginatedItems.Iter(r => results.Add(r));
+            }
+
+            if (resp.total > resp.PaginatedItems.Count)
+            {
+                CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+                CancellationToken cancellationToken = cancellationTokenSource.Token;
+
+                var totalPages = new PagingModel { TotalItems = (int)resp.total, PageSize = (int)resp.maxResults }.TotalPagesAvailable;
+                int count = 0;
+
+                try
+                {
+                    Parallel.For(1, totalPages, new ParallelOptions { MaxDegreeOfParallelism = 3, CancellationToken = cancellationToken }, i =>
+                    {
+                        lock (_lock) { count++; }
+                        var currentSearchQry = searchQuery.DeepClone();
+                        currentSearchQry["startAt"] = (i * maxResults).ToString();
+
+                        PjUtility.Log($"Trying to read {count} of {totalPages} starting at {currentSearchQry["startAt"]}");
+                        var searchResult = search(currentSearchQry);
+
+                        if (predicate != null)
+                        {
+                            foreach (var value in searchResult.PaginatedItems)
+                            {
+                                if (predicate(value) == true)
+                                {
+                                    results.Add(value);
+                                    if (breakSearchOnFirstConditionValid)
+                                    {
+                                        cancellationTokenSource.Cancel();
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            (searchResult.values ?? searchResult.issues).Iter(r => results.Add(r));
+                        }
+                    });
+                }
+                catch (OperationCanceledException e)
+                {
+                }
+                finally
+                {
+                    cancellationTokenSource.Dispose();
+                }
+            }
+            return results.ToList();
         }
 
         internal IList<T> SearchFull<T>(
