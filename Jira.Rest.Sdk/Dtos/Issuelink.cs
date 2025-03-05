@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Jira.Rest.Sdk.Dtos
 {
-    public class Issuelink
+    public class IssueLink
     {
         [JsonProperty("id", NullValueHandling = NullValueHandling.Ignore)]
         public string Id { get; set; }

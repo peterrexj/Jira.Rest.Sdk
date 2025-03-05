@@ -20,5 +20,10 @@ namespace Jira.IntegrationTests
         public static string IssueFilter => PjUtility.EnvironmentVariables.GetValue("IssueFilter");
         public static string IssueNamePrefix => PjUtility.EnvironmentVariables.GetValue("IssueNamePrefix");
         public static string IssueCleanFilter => PjUtility.EnvironmentVariables.GetValue("IssueCleanFilter");
+        public static string IssueKey => PjUtility.EnvironmentVariables.GetValue("IssueKey");
+        public static List<string> FixVersion => PjUtility.EnvironmentVariables.GetValue("FixVersion").SplitAndTrim(",").ToList() ?? new List<string>();
+        public static List<string> Version => PjUtility.EnvironmentVariables.GetValue("Version").SplitAndTrim(",").ToList() ?? new List<string>();
+        public static List<string> Component => PjUtility.EnvironmentVariables.GetValue("Component").SplitAndTrim(",").ToList() ?? new List<string>();
+        public static List<string> Label => PjUtility.EnvironmentVariables.GetValue("Label").SplitAndTrim(",").ToList() ?? new List<string>();
     }
 }

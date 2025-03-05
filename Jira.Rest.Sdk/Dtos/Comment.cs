@@ -17,7 +17,7 @@ namespace Jira.Rest.Sdk.Dtos
         public Author Author { get; set; }
 
         [JsonProperty("body", NullValueHandling = NullValueHandling.Ignore)]
-        public string Body { get; set; }
+        public Description Body { get; set; }
 
         [JsonProperty("updateAuthor", NullValueHandling = NullValueHandling.Ignore)]
         public UpdateAuthor UpdateAuthor { get; set; }
@@ -31,7 +31,8 @@ namespace Jira.Rest.Sdk.Dtos
         [JsonProperty("visibility", NullValueHandling = NullValueHandling.Ignore)]
         public Visibility Visibility { get; set; }
 
-       
+        [JsonProperty("jsdPublic", NullValueHandling = NullValueHandling.Ignore)]
+        public string JsdPublic { get; set; }
     }
 
 }

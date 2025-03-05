@@ -20,7 +20,7 @@ namespace Jira.Rest.Sdk.Dtos
         public DateTime Created { get; set; }
 
         [JsonProperty("size", NullValueHandling = NullValueHandling.Ignore)]
-        public int Size { get; set; }
+        public long Size { get; set; }
 
         [JsonProperty("mimeType", NullValueHandling = NullValueHandling.Ignore)]
         public string MimeType { get; set; }
@@ -32,6 +32,6 @@ namespace Jira.Rest.Sdk.Dtos
         public string Thumbnail { get; set; }
 
         [JsonProperty("id", NullValueHandling = NullValueHandling.Ignore)]
-        public int Id { get; set; }
+        public long Id { get; set; }
     }
 }

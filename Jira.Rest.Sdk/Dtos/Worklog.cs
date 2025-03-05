@@ -17,7 +17,7 @@ namespace Jira.Rest.Sdk.Dtos
         public UpdateAuthor UpdateAuthor { get; set; }
 
         [JsonProperty("comment", NullValueHandling = NullValueHandling.Ignore)]
-        public string Comment { get; set; }
+        public Description Comment { get; set; }
 
         [JsonProperty("updated", NullValueHandling = NullValueHandling.Ignore)]
         public DateTime Updated { get; set; }

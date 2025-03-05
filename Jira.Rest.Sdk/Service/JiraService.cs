@@ -82,18 +82,18 @@ namespace Jira.Rest.Sdk
         #region Issues
 
         /// <summary>
-        /// Creates a new issue in Jira.
+        /// Creates a new issue in Jira. 
+        /// Decription is removed as there defect in the Jira version 3 API
         /// </summary>
         /// <param name="projectKey">The key of the project in which to create the issue.</param>
         /// <param name="issueType">The type of the issue to create (e.g., Bug, Task).</param>
         /// <param name="summary">A brief summary of the issue.</param>
-        /// <param name="description">A detailed description of the issue.</param>
         /// <param name="priority">The priority of the issue (e.g., High, Medium, Low).</param>
         /// <param name="parentKey">The key of the parent issue, if any. Defaults to null.</param>
         /// <returns>The created issue.</returns>
         public Issue IssueCreate(string projectKey, string issueType,
             string summary,
-            string description,
+            //Description description,
             string priority,
             string parentKey = null)
         {
@@ -115,7 +115,7 @@ namespace Jira.Rest.Sdk
                         Key = projectKey
                     },
                     Summary = summary,
-                    Description = description,
+                    //Description = description, TODO: Add description based on the version 3, currently its failing on Jira side with the object and no proper documentation of the error
                     IssueType = new IssueType
                     {
                         Id = issueId.ToLong()
@@ -144,13 +144,37 @@ namespace Jira.Rest.Sdk
         }
 
         /// <summary>
+        /// Retrieves the approximate count of issues in Jira using JQL.
+        /// </summary>
+        /// <param name="jql">The JQL query string to use for searching issues.</param>
+        /// <returns>The approximate count of issues that match the JQL query.</returns>
+        public int IssueSearchApproximateCount(string jql)
+        {
+            var requestBody = new { jql = jql };
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search/approximate-count")
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            var responseContent = jiraResponse.ResponseBody.ContentString;
+            var approximateCount = JObject.Parse(responseContent)["count"].Value<int>();
+            return approximateCount;
+        }
+
+        /// <summary>
         /// Creates a link between two issues in Jira.
         /// </summary>
         /// <param name="linkType">The type of link to create (e.g., "blocks", "relates to").</param>
         /// <param name="outwardIssueKey">The key of the outward issue.</param>
         /// <param name="inwardIssueKey">The key of the inward issue.</param>
         /// <param name="issueInfo">Optional additional information about the issue link. Defaults to null.</param>
-        public void IssueLink(string linkType, string outwardIssueKey, string inwardIssueKey, Issue issueInfo = null)
+        /// <param name="comment">Optional comment to add to the issue link. Defaults to null.</param>
+        public void IssueLink(string linkType, string outwardIssueKey, string inwardIssueKey, Issue? issueInfo = null, object? comment = null)
         {
             if (linkType.IsEmpty() || inwardIssueKey.IsEmpty() || outwardIssueKey.IsEmpty()) return;
 
@@ -170,13 +194,10 @@ namespace Jira.Rest.Sdk
                 {
                     var requestModel = new CreateIssueLink
                     {
-                        Type = new Dtos.Type { Name = linkType },
+                        Type = new Dtos.Type { Name = issueLinkId },
                         InwardIssue = new InwardIssue { Key = inwardIssueKey },
                         OutwardIssue = new OutwardIssue { Key = outwardIssueKey },
-                        Comment = new Comment
-                        {
-                            Body = $"Automation: Link created between {inwardIssueKey} and {outwardIssueKey} of type {linkType}",
-                        }
+                        Comment = comment
                     };
 
                     var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLink")
@@ -187,8 +208,30 @@ namespace Jira.Rest.Sdk
                            retryOption: RequestRetryTimes,
                            httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
                            retryOnRequestTimeout: RetryOnRequestTimeout);
+
+                    if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.Created)
+                        throw new Exception("The link was not created!");
                 }
             }
+        }
+
+        /// <summary>
+        /// Retrieves an issue link from Jira by its ID.
+        /// </summary>
+        /// <param name="linkId">The ID of the issue link to retrieve.</param>
+        /// <returns>The issue link corresponding to the specified ID.</returns>
+        public IssueLink IssueLinkGetById(string linkId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLink/{linkId}")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<IssueLink>(jiraResponse.ResponseBody.ContentString);
         }
 
         /// <summary>
@@ -238,28 +281,6 @@ namespace Jira.Rest.Sdk
         public void IssueAssigneeByAccountId(string issueKey, string userId)
         {
             var reqBody = new { accountId = userId };
-
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/assignee")
-               .SetJsonBody(reqBody)
-               .SetTimeout(RequestTimeoutInSeconds)
-               .PutWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
-                throw new Exception("The issue assignment was not properly performed!");
-        }
-
-        /// <summary>
-        /// Assigns an issue to a user by their username in Jira.
-        /// </summary>
-        /// <param name="issueKey">The key of the issue to be assigned.</param>
-        /// <param name="username">The username of the user to whom the issue will be assigned.</param>
-        public void IssueAssigneeByName(string issueKey, string username)
-        {
-            var reqBody = new { name = username };
 
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/assignee")
                .SetJsonBody(reqBody)
@@ -671,7 +692,7 @@ namespace Jira.Rest.Sdk
             }
         }
 
-        internal Pagination<Issue> IssueSearch(IDictionary<string, string> issueSearchRequest)
+        internal Pagination2<Issue> IssueSearch(IssueSearchRequest issueSearchRequest)
         {
             //Using POST to handle large query string
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search/jql")
@@ -685,7 +706,7 @@ namespace Jira.Rest.Sdk
                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
-            return ToType<Pagination<Issue>>(jiraResponse.ResponseBody.ContentJson);
+            return ToType<Pagination2<Issue>>(jiraResponse.ResponseBody.ContentString);
         }
 
         //"TODO: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
@@ -713,8 +734,10 @@ namespace Jira.Rest.Sdk
             int[]? reconcileIssues = null,
             Func<Issue, bool>? predicate = null, bool breakSearchOnFirstConditionValid = true)
         {
-            return SearchFullVersion2<Issue>(
-                new IssueSearchRequest { Jql = jql, Fields = fields, FieldsByKeys = fieldsByKeys, Expand = expand, Properties = properties, ReconcileIssues = reconcileIssues }.GetPropertyValuesV2(),
+            fields ??= new[] { "*all" };
+
+            return SearchFullVersion2<Issue, IssueSearchRequest>(
+                new IssueSearchRequest { Jql = jql, Fields = fields, FieldsByKeys = fieldsByKeys, Expand = expand, Properties = properties, ReconcileIssues = reconcileIssues },
                 (s) => IssueSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
         }
 
@@ -908,6 +931,26 @@ namespace Jira.Rest.Sdk
         #endregion
 
         /// <summary>
+        /// Retrieves the versions of a project in Jira.
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        public List<Version> VersionsGet(string projectId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/{projectId}/versions")
+              .SetTimeout(RequestTimeoutInSeconds)
+              .GetWithRetry(assertOk: AssertResponseStatusOk,
+                  timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                  retryOption: RequestRetryTimes,
+                  httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                  retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ToType<List<Version>>(jiraResponse.ResponseBody.ContentJson);
+        }
+
+        /// <summary>
         /// Retrieves the version information in Jira by the version ID.
         /// </summary>
         /// <param name="versionId">The ID of the version to retrieve.</param>
@@ -925,6 +968,26 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
 
             return ToType<Version>(jiraResponse.ResponseBody.ContentJson);
+        }
+
+        /// <summary>
+        /// Retrieves the components available in the project
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        public List<ProjectComponent> ComponentsGet(string projectId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/{projectId}/components")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ToType<List<ProjectComponent>>(jiraResponse.ResponseBody.ContentJson);
         }
 
         /// <summary>
@@ -947,86 +1010,43 @@ namespace Jira.Rest.Sdk
             return ToType<ProjectComponent>(jiraResponse.ResponseBody.ContentJson);
         }
 
-        internal IList<T> SearchFullVersion2<T>(
-            IDictionary<string, string>? searchQuery,
-            Func<IDictionary<string, string>, Pagination<T>> search,
+        internal IList<T> SearchFullVersion2<T, M>(
+            M? searchQuery,
+            Func<M, Pagination2<T>> search,
             Func<T, bool>? predicate = null,
-            bool breakSearchOnFirstConditionValid = true)
+            bool breakSearchOnFirstConditionValid = true) where M : SearchRequestBase2
         {
-            var results = new ConcurrentBag<T>();
+            var results = new List<T>();
             var maxResults = 50;
-            searchQuery ??= new Dictionary<string, string>();
-            if (searchQuery.ContainsKey("maxResults")) searchQuery["maxResults"] = maxResults.ToString(); else searchQuery.Add("maxResults", maxResults.ToString());
-            if (searchQuery.ContainsKey("nextPageToken")) searchQuery.Remove("nextPageToken");
+            if (searchQuery == null) return results.ToList();
+            searchQuery.MaxResults = maxResults;
+            searchQuery.NextPageToken = null;
 
-            var resp = search(searchQuery);
-
-            if (predicate != null)
+            do
             {
-                foreach (var value in resp.PaginatedItems)
+                var resp = search(searchQuery);
+                if (predicate != null)
                 {
-                    if (predicate(value) == true)
+                    foreach (var value in resp.PaginatedItems)
                     {
-                        results.Add(value);
-                        if (breakSearchOnFirstConditionValid)
+                        if (predicate(value) == true)
                         {
-                            return results.ToList();
+                            results.Add(value);
+                            if (breakSearchOnFirstConditionValid)
+                            {
+                                return results.ToList();
+                            }
                         }
                     }
                 }
-            }
-            else
-            {
-                resp.PaginatedItems.Iter(r => results.Add(r));
-            }
-
-            if (resp.total > resp.PaginatedItems.Count)
-            {
-                CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
-                CancellationToken cancellationToken = cancellationTokenSource.Token;
-
-                var totalPages = new PagingModel { TotalItems = (int)resp.total, PageSize = (int)resp.maxResults }.TotalPagesAvailable;
-                int count = 0;
-
-                try
+                else
                 {
-                    Parallel.For(1, totalPages, new ParallelOptions { MaxDegreeOfParallelism = 3, CancellationToken = cancellationToken }, i =>
-                    {
-                        lock (_lock) { count++; }
-                        var currentSearchQry = searchQuery.DeepClone();
-                        currentSearchQry["startAt"] = (i * maxResults).ToString();
-
-                        PjUtility.Log($"Trying to read {count} of {totalPages} starting at {currentSearchQry["startAt"]}");
-                        var searchResult = search(currentSearchQry);
-
-                        if (predicate != null)
-                        {
-                            foreach (var value in searchResult.PaginatedItems)
-                            {
-                                if (predicate(value) == true)
-                                {
-                                    results.Add(value);
-                                    if (breakSearchOnFirstConditionValid)
-                                    {
-                                        cancellationTokenSource.Cancel();
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            (searchResult.values ?? searchResult.issues).Iter(r => results.Add(r));
-                        }
-                    });
+                    resp.PaginatedItems.Iter(r => results.Add(r));
                 }
-                catch (OperationCanceledException e)
-                {
-                }
-                finally
-                {
-                    cancellationTokenSource.Dispose();
-                }
+                searchQuery.NextPageToken = resp.nextPageToken;
             }
+            while (searchQuery.NextPageToken.HasValue());
+
             return results.ToList();
         }
 

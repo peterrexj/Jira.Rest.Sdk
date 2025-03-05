@@ -17,6 +17,6 @@ namespace Jira.Rest.Sdk.Dtos
         public OutwardIssue OutwardIssue { get; set; }
 
         [JsonProperty("comment", NullValueHandling = NullValueHandling.Ignore)]
-        public Comment Comment { get; set; }
+        public object? Comment { get; set; }
     }
 }

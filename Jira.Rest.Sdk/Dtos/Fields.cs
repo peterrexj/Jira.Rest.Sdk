@@ -1,7 +1,6 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using Jira.Rest.Sdk.Extensions;
+using Newtonsoft.Json;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Jira.Rest.Sdk.Dtos
 {
@@ -30,9 +29,37 @@ namespace Jira.Rest.Sdk.Dtos
 
         //public List<SubTask> Subtasks { get; set; }
 
+        private Description? _description;
+        private string? _descriptionUpdate;
+        private object? _descriptionRaw;
 
         [JsonProperty("description", NullValueHandling = NullValueHandling.Ignore)]
-        public string Description { get; set; }
+        [JsonConverter(typeof(DescriptionConverter))]
+        public object Description
+        {
+            get => _description ?? (object)_descriptionUpdate ?? _descriptionRaw;
+            set
+            {
+                if (value is Description description)
+                {
+                    _description = description;
+                    _descriptionUpdate = null;
+                    _descriptionRaw = null;
+                }
+                else if (value is string descriptionUpdate)
+                {
+                    _descriptionUpdate = descriptionUpdate;
+                    _description = null;
+                    _descriptionRaw = null;
+                }
+                else
+                {
+                    _descriptionRaw = value;
+                    _description = null;
+                    _descriptionUpdate = null;
+                }
+            }
+        }
 
         [JsonProperty("project", NullValueHandling = NullValueHandling.Ignore)]
         public Project Project { get; set; }
@@ -41,7 +68,7 @@ namespace Jira.Rest.Sdk.Dtos
         public CommentList Comment { get; set; }
 
         [JsonProperty("issuelinks", NullValueHandling = NullValueHandling.Ignore)]
-        public List<Issuelink> Issuelinks { get; set; }
+        public List<IssueLink> Issuelinks { get; set; }
 
         [JsonProperty("worklog", NullValueHandling = NullValueHandling.Ignore)]
         public WorklogList Worklog { get; set; }

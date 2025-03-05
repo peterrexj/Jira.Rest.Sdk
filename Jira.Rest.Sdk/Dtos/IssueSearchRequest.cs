@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Jira.Rest.Sdk.Dtos
 {
-    public class IssueSearchRequest : SearchRequestBase
+    public class IssueSearchRequest : SearchRequestBase2
     {
         [JsonProperty("jql", NullValueHandling = NullValueHandling.Ignore)]
         public string Jql { get; set; }
@@ -14,7 +14,7 @@ namespace Jira.Rest.Sdk.Dtos
         public string[]? Fields { get; set; }
 
         [JsonProperty("fieldsByKeys", NullValueHandling = NullValueHandling.Ignore)]
-        public bool FieldsByKeys { get; set; }
+        public bool? FieldsByKeys { get; set; }
 
         [JsonProperty("expand", NullValueHandling = NullValueHandling.Ignore)]
         public string? Expand { get; set; }

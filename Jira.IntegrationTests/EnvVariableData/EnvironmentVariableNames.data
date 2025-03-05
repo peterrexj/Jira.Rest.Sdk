@@ -6,3 +6,8 @@ ProjectKey
 IssueFilter
 IssueNamePrefix
 IssueCleanFilter
+IssueKey
+FixVersion
+Version
+Component
+Label
