@@ -16,7 +16,7 @@
 		<Authors>Peter Joseph</Authors>
 		<Company>Peter Joseph</Company>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
-		<PackageIcon>icon.svg</PackageIcon>
+		<PackageIcon>icon.png</PackageIcon>
 		<PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/release-notes.txt"))</PackageReleaseNotes>
 		<Description>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/product-description.txt"))</Description>
 		<PackageTags>jira selenium automation c# api essentials</PackageTags>
@@ -42,7 +42,7 @@
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
-		<None Update="icon.svg">
+		<None Update="icon.png">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>
