@@ -1,11 +1,54 @@
-﻿1.0.1.7
-- Added bearer auth to the service
+﻿1.0.4
+- 🎨 Added official Jira-themed package icon
+- 📚 Enhanced NuGet package documentation and README
+- 🔧 Improved package metadata for better discoverability
+- 🚀 Added support for Jira API version 3
+- 📋 Enhanced project search functionality for Jira v3+ instances
 
-1.0.1.1
-- Retry on every action [Get, Post, Delete, Put] has now additional parameter to control the timeout error from server. retryOnRequestTimeout, can be set to true/false to fail when the request timeout or to retry
+## Using Jira API Version 3
 
-1.0.1.0
-- Support to get the User account and version
+To use Jira API version 3, specify the `jiraApiVersion` parameter in the constructor:
 
-First Release 1.0.0.0 - Rest Endpoints - Cloud and Server to connect Zeyphr Scale
-This sdk provides features to connect with Jira service hosted Server or Cloud. The first release contains the basic features to communicate. With the upcoming release more api endpoints will be added.
+```csharp
+// Connect to Jira Cloud/Server using API version 3
+var jiraService = new JiraService(
+    appUrl: "https://your-jira-instance.com",
+    serviceUsername: "username",
+    servicePassword: "password",
+    isCloudVersion: true,
+    jiraApiVersion: "3"  // Specify version 3 for enhanced features
+);
+
+// Example: Use enhanced project search (requires Jira v3+)
+var projects = jiraService.ProjectSearch("MyProject");
+```
+
+**Note:** Some features like enhanced project search require Jira API version 3 or higher.
+
+1.0.3
+- 🔐 Added bearer authentication support to the service
+- 🛠️ Enhanced authentication options for cloud and server instances
+
+1.0.2
+- ⚡ Retry mechanism improvements for all HTTP actions [GET, POST, DELETE, PUT]
+- 🕐 Added retryOnRequestTimeout parameter to control timeout error handling
+- 🔄 Better control over request timeout scenarios
+
+1.0.1
+- 👤 Added support to get User account information and version details
+- 🔍 Enhanced user management capabilities
+
+1.0.0 - Initial Release
+- 🚀 First release with REST endpoints for both Jira Cloud and Server
+- 🔗 Core SDK functionality to connect with Jira services
+- 📋 Basic issue management, project operations, and API communication
+- 🏗️ Foundation for future API endpoint expansions
+
+Features included in this release:
+• Project management (get, search, filter)
+• Issue operations (create, read, update, delete, search)
+• Issue linking and transitions
+• Comments, watchers, votes, and worklogs
+• Attachments and notifications
+• Bulk operations support
+• Comprehensive DTO models for all API responses

@@ -530,12 +530,33 @@ namespace Jira.Rest.Sdk
         {
             if (issueKey.IsEmpty()) return;
 
+            // Format the description as Atlassian Document Format (ADF) for Jira Cloud/Server compatibility
+            var formattedDescription = new
+            {
+                type = "doc",
+                version = 1,
+                content = new[]
+                {
+                    new
+                    {
+                        type = "paragraph",
+                        content = new[]
+                        {
+                            new
+                            {
+                                type = "text",
+                                text = description
+                            }
+                        }
+                    }
+                }
+            };
+
             var reqBody = new UpdateIssueRequest { Update = new Update { } };
             reqBody.Update.Description = new List<dynamic>();
-            reqBody.Update.Description.Add(new { set = description });
+            reqBody.Update.Description.Add(new { set = formattedDescription });
 
-
-            var jiraResponse = OpenRequest($"/rest/api/2/issue/{issueKey}")
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}")
                   .SetJsonBody(reqBody)
                   .WithJsonResponse()
                   .SetTimeout(RequestTimeoutInSeconds)
@@ -546,7 +567,7 @@ namespace Jira.Rest.Sdk
                        retryOnRequestTimeout: RetryOnRequestTimeout);
 
             if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
-                throw new Exception("The component was not updated!");
+                throw new Exception("The description was not updated!");
         }
 
         /// <summary>
@@ -785,6 +806,755 @@ namespace Jira.Rest.Sdk
                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             return jiraResponse;
+        }
+
+        /// <summary>
+        /// Deletes an issue link in Jira.
+        /// </summary>
+        /// <param name="linkId">The ID of the issue link to delete.</param>
+        public void IssueLinkDelete(string linkId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issueLink/{linkId}")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The issue link was not deleted!");
+        }
+
+        /// <summary>
+        /// Retrieves the available transitions for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve transitions.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The available transitions for the issue.</returns>
+        public IssueTransitions IssueTransitionsGet(string issueKey, string expand = null)
+        {
+            var queryParams = new ParameterCollection();
+            if (expand.HasValue())
+            {
+                queryParams.Add("expand", expand);
+            }
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/transitions")
+                .SetQueryParams(queryParams)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<IssueTransitions>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Transitions an issue to a new status in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to transition.</param>
+        /// <param name="transitionId">The ID of the transition to perform.</param>
+        /// <param name="comment">Optional comment to add during the transition.</param>
+        /// <param name="fields">Optional fields to update during the transition.</param>
+        public void IssueTransition(string issueKey, string transitionId, string comment = null, object fields = null)
+        {
+            object updateSection = null;
+            if (comment.HasValue())
+            {
+                // Format the comment body as Atlassian Document Format (ADF) for Jira Cloud/Server compatibility
+                var formattedCommentBody = new
+                {
+                    type = "doc",
+                    version = 1,
+                    content = new[]
+                    {
+                        new
+                        {
+                            type = "paragraph",
+                            content = new[]
+                            {
+                                new
+                                {
+                                    type = "text",
+                                    text = comment
+                                }
+                            }
+                        }
+                    }
+                };
+                
+                updateSection = new { comment = new[] { new { add = new { body = formattedCommentBody } } } };
+            }
+
+            var requestBody = new
+            {
+                transition = new { id = transitionId },
+                update = updateSection,
+                fields = fields
+            };
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/transitions")
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The issue transition failed!");
+        }
+
+        /// <summary>
+        /// Retrieves comments for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve comments.</param>
+        /// <param name="startAt">The index of the first comment to return. Defaults to 0.</param>
+        /// <param name="maxResults">The maximum number of comments to return. Defaults to 50.</param>
+        /// <param name="orderBy">The order in which to return comments. Defaults to null.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The issue comments.</returns>
+        public CommentList IssueCommentsGet(string issueKey, int startAt = 0, int maxResults = 50, string orderBy = null, string expand = null)
+        {
+            var queryParams = new ParameterCollection
+            {
+                { "startAt", startAt.ToString() },
+                { "maxResults", maxResults.ToString() }
+            };
+
+            if (orderBy.HasValue())
+                queryParams.Add("orderBy", orderBy);
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/comment")
+                .SetQueryParams(queryParams)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<CommentList>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Adds a comment to an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to which to add the comment.</param>
+        /// <param name="body">The body text of the comment.</param>
+        /// <param name="visibility">Optional visibility settings for the comment.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The created comment.</returns>
+        public Comment IssueCommentAdd(string issueKey, string body, object visibility = null, string expand = null)
+        {
+            // Format the body as Atlassian Document Format (ADF) for Jira Cloud/Server compatibility
+            var formattedBody = new
+            {
+                type = "doc",
+                version = 1,
+                content = new[]
+                {
+                    new
+                    {
+                        type = "paragraph",
+                        content = new[]
+                        {
+                            new
+                            {
+                                type = "text",
+                                text = body
+                            }
+                        }
+                    }
+                }
+            };
+
+            var requestBody = new
+            {
+                body = formattedBody,
+                visibility = visibility
+            };
+
+            var queryParams = new ParameterCollection();
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/comment")
+                .SetQueryParams(queryParams)
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.Created)
+                throw new Exception("The comment was not created!");
+
+            return ToType<Comment>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Retrieves a specific comment from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue containing the comment.</param>
+        /// <param name="commentId">The ID of the comment to retrieve.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The comment.</returns>
+        public Comment IssueCommentGet(string issueKey, string commentId, string expand = null)
+        {
+            var queryParams = new ParameterCollection();
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/comment/{commentId}")
+                .SetQueryParams(queryParams)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<Comment>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Updates a comment on an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue containing the comment.</param>
+        /// <param name="commentId">The ID of the comment to update.</param>
+        /// <param name="body">The new body text of the comment.</param>
+        /// <param name="visibility">Optional visibility settings for the comment.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The updated comment.</returns>
+        public Comment IssueCommentUpdate(string issueKey, string commentId, string body, object visibility = null, string expand = null)
+        {
+            // Format the body as Atlassian Document Format (ADF) for Jira Cloud/Server compatibility
+            var formattedBody = new
+            {
+                type = "doc",
+                version = 1,
+                content = new[]
+                {
+                    new
+                    {
+                        type = "paragraph",
+                        content = new[]
+                        {
+                            new
+                            {
+                                type = "text",
+                                text = body
+                            }
+                        }
+                    }
+                }
+            };
+
+            var requestBody = new
+            {
+                body = formattedBody,
+                visibility = visibility
+            };
+
+            var queryParams = new ParameterCollection();
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/comment/{commentId}")
+                .SetQueryParams(queryParams)
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PutWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<Comment>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Deletes a comment from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue containing the comment.</param>
+        /// <param name="commentId">The ID of the comment to delete.</param>
+        public void IssueCommentDelete(string issueKey, string commentId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/comment/{commentId}")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The comment was not deleted!");
+        }
+
+        /// <summary>
+        /// Retrieves watchers for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve watchers.</param>
+        /// <returns>The issue watchers.</returns>
+        public WatchersList IssueWatchersGet(string issueKey)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/watchers")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<WatchersList>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Adds a watcher to an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to which to add the watcher.</param>
+        /// <param name="accountId">The account ID of the user to add as a watcher.</param>
+        public void IssueWatcherAdd(string issueKey, string accountId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/watchers")
+                .SetJsonBody($"\"{accountId}\"")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The watcher was not added!");
+        }
+
+        /// <summary>
+        /// Removes a watcher from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue from which to remove the watcher.</param>
+        /// <param name="accountId">The account ID of the user to remove as a watcher.</param>
+        public void IssueWatcherRemove(string issueKey, string accountId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/watchers")
+                .SetQueryParams(new ParameterCollection { { "accountId", accountId } })
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The watcher was not removed!");
+        }
+
+        /// <summary>
+        /// Retrieves votes for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve votes.</param>
+        /// <returns>The issue votes.</returns>
+        public Votes IssueVotesGet(string issueKey)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/votes")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<Votes>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Adds a vote to an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to vote for.</param>
+        public void IssueVoteAdd(string issueKey)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/votes")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The vote was not added!");
+        }
+
+        /// <summary>
+        /// Removes a vote from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue from which to remove the vote.</param>
+        public void IssueVoteRemove(string issueKey)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/votes")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The vote was not removed!");
+        }
+
+        /// <summary>
+        /// Retrieves worklogs for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve worklogs.</param>
+        /// <param name="startAt">The index of the first worklog to return. Defaults to 0.</param>
+        /// <param name="maxResults">The maximum number of worklogs to return. Defaults to 50.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The issue worklogs.</returns>
+        public WorklogList IssueWorklogsGet(string issueKey, int startAt = 0, int maxResults = 50, string expand = null)
+        {
+            var queryParams = new ParameterCollection
+            {
+                { "startAt", startAt.ToString() },
+                { "maxResults", maxResults.ToString() }
+            };
+
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/worklog")
+                .SetQueryParams(queryParams)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<WorklogList>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Adds a worklog to an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to which to add the worklog.</param>
+        /// <param name="timeSpentSeconds">The time spent in seconds.</param>
+        /// <param name="comment">Optional comment for the worklog.</param>
+        /// <param name="started">Optional start date/time for the worklog (ISO 8601 format).</param>
+        /// <param name="adjustEstimate">How to adjust the remaining estimate. Options: "new", "leave", "manual", "auto".</param>
+        /// <param name="newEstimate">New estimate value when adjustEstimate is "new".</param>
+        /// <param name="reduceBy">Amount to reduce estimate by when adjustEstimate is "manual".</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The created worklog.</returns>
+        public Worklog IssueWorklogAdd(string issueKey, int timeSpentSeconds, string comment = null,
+            string started = null, string adjustEstimate = "auto", string newEstimate = null,
+            string reduceBy = null, string expand = null)
+        {
+            var requestBody = new
+            {
+                timeSpentSeconds = timeSpentSeconds,
+                comment = comment,
+                started = started ?? DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            };
+
+            var queryParams = new ParameterCollection();
+            if (adjustEstimate.HasValue())
+                queryParams.Add("adjustEstimate", adjustEstimate);
+            if (newEstimate.HasValue())
+                queryParams.Add("newEstimate", newEstimate);
+            if (reduceBy.HasValue())
+                queryParams.Add("reduceBy", reduceBy);
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/worklog")
+                .SetQueryParams(queryParams)
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.Created)
+                throw new Exception("The worklog was not created!");
+
+            return ToType<Worklog>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Retrieves a specific worklog from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue containing the worklog.</param>
+        /// <param name="worklogId">The ID of the worklog to retrieve.</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The worklog.</returns>
+        public Worklog IssueWorklogGet(string issueKey, string worklogId, string expand = null)
+        {
+            var queryParams = new ParameterCollection();
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/worklog/{worklogId}")
+                .SetQueryParams(queryParams)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .GetWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<Worklog>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Updates a worklog on an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue containing the worklog.</param>
+        /// <param name="worklogId">The ID of the worklog to update.</param>
+        /// <param name="timeSpentSeconds">The time spent in seconds.</param>
+        /// <param name="comment">Optional comment for the worklog.</param>
+        /// <param name="started">Optional start date/time for the worklog (ISO 8601 format).</param>
+        /// <param name="adjustEstimate">How to adjust the remaining estimate. Options: "new", "leave", "manual", "auto".</param>
+        /// <param name="newEstimate">New estimate value when adjustEstimate is "new".</param>
+        /// <param name="reduceBy">Amount to reduce estimate by when adjustEstimate is "manual".</param>
+        /// <param name="expand">Optional comma-separated list of parameters to expand.</param>
+        /// <returns>The updated worklog.</returns>
+        public Worklog IssueWorklogUpdate(string issueKey, string worklogId, int timeSpentSeconds,
+            string comment = null, string started = null, string adjustEstimate = "auto",
+            string newEstimate = null, string reduceBy = null, string expand = null)
+        {
+            var requestBody = new
+            {
+                timeSpentSeconds = timeSpentSeconds,
+                comment = comment,
+                started = started
+            };
+
+            var queryParams = new ParameterCollection();
+            if (adjustEstimate.HasValue())
+                queryParams.Add("adjustEstimate", adjustEstimate);
+            if (newEstimate.HasValue())
+                queryParams.Add("newEstimate", newEstimate);
+            if (reduceBy.HasValue())
+                queryParams.Add("reduceBy", reduceBy);
+            if (expand.HasValue())
+                queryParams.Add("expand", expand);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/worklog/{worklogId}")
+                .SetQueryParams(queryParams)
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PutWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<Worklog>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Deletes a worklog from an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue containing the worklog.</param>
+        /// <param name="worklogId">The ID of the worklog to delete.</param>
+        /// <param name="adjustEstimate">How to adjust the remaining estimate. Options: "new", "leave", "manual", "auto".</param>
+        /// <param name="newEstimate">New estimate value when adjustEstimate is "new".</param>
+        /// <param name="increaseBy">Amount to increase estimate by when adjustEstimate is "manual".</param>
+        public void IssueWorklogDelete(string issueKey, string worklogId, string adjustEstimate = "auto",
+            string newEstimate = null, string increaseBy = null)
+        {
+            var queryParams = new ParameterCollection();
+            if (adjustEstimate.HasValue())
+                queryParams.Add("adjustEstimate", adjustEstimate);
+            if (newEstimate.HasValue())
+                queryParams.Add("newEstimate", newEstimate);
+            if (increaseBy.HasValue())
+                queryParams.Add("increaseBy", increaseBy);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/worklog/{worklogId}")
+                .SetQueryParams(queryParams)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The worklog was not deleted!");
+        }
+
+        /// <summary>
+        /// Retrieves attachments for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to retrieve attachments.</param>
+        /// <returns>The issue attachments.</returns>
+        public AttachmentsList IssueAttachmentsGet(string issueKey)
+        {
+            // Get the issue with attachment field to retrieve attachments
+            var issue = IssueGetById(issueKey, "attachment");
+            
+            // Convert the issue attachments to AttachmentsList format
+            var attachmentsList = new AttachmentsList
+            {
+                Total = issue.Fields.Attachment?.Count ?? 0,
+                MaxResults = issue.Fields.Attachment?.Count ?? 0,
+                StartAt = 0,
+                IsLast = true,
+                Values = issue.Fields.Attachment ?? new List<Attachment>()
+            };
+            
+            return attachmentsList;
+        }
+
+        /// <summary>
+        /// Adds an attachment to an issue in Jira.
+        /// Note: This method requires file upload capability in the TestApiHttp library.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue to which to add the attachment.</param>
+        /// <param name="filePath">The path to the file to attach.</param>
+        /// <param name="fileName">Optional custom filename for the attachment.</param>
+        /// <returns>The created attachment information.</returns>
+        public AttachmentsList IssueAttachmentAdd(string issueKey, string filePath, string fileName = null)
+        {
+            if (!System.IO.File.Exists(filePath))
+                throw new Exception($"File not found: {filePath}");
+
+            var actualFileName = fileName ?? System.IO.Path.GetFileName(filePath);
+
+            // Note: This assumes the TestApiHttp library supports file uploads
+            // The exact implementation may vary based on the library's capabilities
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/attachments")
+                .AddHeader("X-Atlassian-Token", "no-check")
+                .SetTimeout(RequestTimeoutInSeconds);
+
+            // File upload implementation would go here
+            // This is a placeholder as the exact method depends on TestApiHttp capabilities
+            throw new NotImplementedException("File upload functionality needs to be implemented based on TestApiHttp library capabilities");
+        }
+
+        /// <summary>
+        /// Deletes an attachment from Jira.
+        /// </summary>
+        /// <param name="attachmentId">The ID of the attachment to delete.</param>
+        public void IssueAttachmentDelete(string attachmentId)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/attachment/{attachmentId}")
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.NoContent)
+                throw new Exception("The attachment was not deleted!");
+        }
+
+        /// <summary>
+        /// Sends a notification for an issue in Jira.
+        /// </summary>
+        /// <param name="issueKey">The key of the issue for which to send the notification.</param>
+        /// <param name="subject">The subject of the notification.</param>
+        /// <param name="textBody">The text body of the notification.</param>
+        /// <param name="htmlBody">The HTML body of the notification.</param>
+        /// <param name="to">Recipients to send the notification to.</param>
+        /// <param name="restrict">Restrictions on who can receive the notification.</param>
+        /// <returns>The notification result.</returns>
+        public object IssueNotificationSend(string issueKey, string subject, string textBody = null,
+            string htmlBody = null, object to = null, object restrict = null)
+        {
+            var requestBody = new
+            {
+                subject = subject,
+                textBody = textBody,
+                htmlBody = htmlBody,
+                to = to,
+                restrict = restrict
+            };
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/{issueKey}/notify")
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<object>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Creates multiple issues in bulk in Jira.
+        /// </summary>
+        /// <param name="issueUpdates">Array of issue creation requests.</param>
+        /// <returns>The bulk creation results.</returns>
+        public BulkOperationResult IssuesBulkCreate(object[] issueUpdates)
+        {
+            var requestBody = new
+            {
+                issueUpdates = issueUpdates
+            };
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/bulk")
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PostWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            if (jiraResponse.ResponseCode != System.Net.HttpStatusCode.Created)
+                throw new Exception("The bulk issue creation failed!");
+
+            return ToType<BulkOperationResult>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Updates multiple issues in bulk in Jira.
+        /// </summary>
+        /// <param name="issueUpdates">Array of issue update requests.</param>
+        /// <returns>The bulk update results.</returns>
+        public BulkOperationResult IssuesBulkEdit(object[] issueUpdates)
+        {
+            var requestBody = new
+            {
+                issueUpdates = issueUpdates
+            };
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/bulk")
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .PutWithRetry(assertOk: AssertResponseStatusOk,
+                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                    retryOption: RequestRetryTimes,
+                    httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                    retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<BulkOperationResult>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Deletes multiple issues in bulk in Jira.
+        /// </summary>
+        /// <param name="issueIdsOrKeys">Array of issue IDs or keys to delete.</param>
+        /// <returns>The bulk deletion results.</returns>
+        public BulkOperationResult IssuesBulkDelete(string[] issueIdsOrKeys)
+        {
+            var requestBody = new
+            {
+                issueIdsOrKeys = issueIdsOrKeys
+            };
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/issue/bulk")
+                .SetJsonBody(requestBody)
+                .SetTimeout(RequestTimeoutInSeconds)
+                .Delete();
+
+            jiraResponse.AssertResponseStatusForSuccess();
+            return ToType<BulkOperationResult>(jiraResponse.ResponseBody.ContentString);
         }
 
         #endregion

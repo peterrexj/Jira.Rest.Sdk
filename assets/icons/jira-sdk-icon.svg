@@ -1,0 +1,50 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="jiraBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0052CC;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2684FF;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="jiraAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF5630;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8F73;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#jiraBlue)" stroke="#0052CC" stroke-width="2"/>
+  
+  <!-- Main Jira-style icon elements -->
+  <!-- Top rounded rectangle (ticket/issue representation) -->
+  <rect x="24" y="28" width="80" height="16" rx="8" ry="8" fill="white" opacity="0.9"/>
+  
+  <!-- Middle rounded rectangle -->
+  <rect x="24" y="48" width="60" height="12" rx="6" ry="6" fill="white" opacity="0.8"/>
+  
+  <!-- Bottom rounded rectangle -->
+  <rect x="24" y="64" width="70" height="12" rx="6" ry="6" fill="white" opacity="0.7"/>
+  
+  <!-- SDK indicator - gear/cog icon -->
+  <g transform="translate(75, 85)">
+    <circle cx="0" cy="0" r="12" fill="url(#jiraAccent)"/>
+    <circle cx="0" cy="0" r="6" fill="white"/>
+    <!-- Gear teeth -->
+    <rect x="-2" y="-15" width="4" height="6" fill="url(#jiraAccent)"/>
+    <rect x="-2" y="9" width="4" height="6" fill="url(#jiraAccent)"/>
+    <rect x="-15" y="-2" width="6" height="4" fill="url(#jiraAccent)"/>
+    <rect x="9" y="-2" width="6" height="4" fill="url(#jiraAccent)"/>
+    <rect x="-11" y="-11" width="4" height="4" fill="url(#jiraAccent)" transform="rotate(45)"/>
+    <rect x="7" y="-11" width="4" height="4" fill="url(#jiraAccent)" transform="rotate(45)"/>
+    <rect x="-11" y="7" width="4" height="4" fill="url(#jiraAccent)" transform="rotate(45)"/>
+    <rect x="7" y="7" width="4" height="4" fill="url(#jiraAccent)" transform="rotate(45)"/>
+  </g>
+  
+  <!-- REST API indicator - connection dots -->
+  <circle cx="32" cy="88" r="3" fill="white"/>
+  <circle cx="42" cy="88" r="3" fill="white"/>
+  <circle cx="52" cy="88" r="3" fill="white"/>
+  <line x1="35" y1="88" x2="39" y2="88" stroke="white" stroke-width="2"/>
+  <line x1="45" y1="88" x2="49" y2="88" stroke="white" stroke-width="2"/>
+  
+  <!-- Subtle highlight -->
+  <circle cx="64" cy="64" r="60" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+</svg>

@@ -1,4 +1,9 @@
-Jira.Rest.Sdk
+<div align="center">
+  <img src="assets/icons/jira-sdk-icon.svg" alt="Jira REST SDK" width="128" height="128">
+  
+  # Jira.Rest.Sdk
+</div>
+
 ========
 
 SDK using Jira REST to query Jira application using Rest endpoints. Manage your Jira process from query, create and update issues. Integrate with you existing automation solution or process that will manage both Jira Server and Cloud based application.
@@ -27,26 +32,103 @@ The request and response objects are having proper DTOS (data transfer or model 
      var issue = jiraService.IssueGetById("POC-100");
 
      //Get a list of issues matching your jql
-     var issue = jiraService.IssueSearch("<your jql>");
+     var issues = jiraService.IssueSearch("<your jql>");
 
      //Get project by custom filters on any properties
      var project = jiraService.ProjectsGet(p => p.Name.EqualsIgnoreCase("poc")).FirstOrDefault();
 
      //Create a Issue
-     var newIssue = jiraService.IssueCreate(projectKey: "POC", 
-                    issueType: "Story", 
-                    summary: "Build new interface for model B", 
-                    description: "Provide your detailed description for the issue", 
-                    priority: "High", 
-                    parentKey: "POC-99")
+     var newIssue = jiraService.IssueCreate(projectKey: "POC",
+                    issueType: "Story",
+                    summary: "Build new interface for model B",
+                    description: "Provide your detailed description for the issue",
+                    priority: "High",
+                    parentKey: "POC-99");
+
+     //Link two issues
+     jiraService.IssueLink("blocks", "POC-100", "POC-101");
+
+     //Add a comment to an issue
+     var commentResponse = jiraService.IssueCommentAdd("POC-100", "This is a test comment");
+
+     //Add a worklog to an issue (3600 seconds = 1 hour)
+     var worklogResponse = jiraService.IssueWorklogAdd("POC-100", 3600, "Worked on implementation");
+
+     //Get issue transitions
+     var transitions = jiraService.IssueTransitionsGet("POC-100");
+
+     //Add a watcher to an issue
+     jiraService.IssueWatcherAdd("POC-100", "user-account-id");
+
+     //Get issue attachments
+     var attachments = jiraService.IssueAttachmentsGet("POC-100");
+
+     //Send notification for an issue
+     jiraService.IssueNotificationSend("POC-100", "Subject", "Notification body");
+
+     //Delete an issue
+     jiraService.IssueDelete("POC-100");
 ```
 
 ### Current Features
 
+#### Project Management
      - ProjectsGet
-     - ProjectsGet  = with options to search by any project's field property
+     - ProjectsGet = with options to search by any project's field property
+
+#### Issue Management
      - IssueCreate
+     - IssueGetById
+     - IssueSearch = with option to search by any issue or its child's field property
+     - IssueSearchApproximateCount
+     - IssueDelete
+     - IssueUpdate
+     - IssueMetadataGet
+     - IssueCreateMetaDataGet
+
+#### Issue Links
      - IssueLink
+     - IssueLinkGetById
+     - IssueLinkDelete
+     - IssueLinkTypesMetadataGet
+
+#### Issue Transitions
+     - IssueTransitionsGet
+     - IssueTransition
+
+#### Issue Comments
+     - IssueCommentsGet
+     - IssueCommentAdd
+     - IssueCommentGet
+     - IssueCommentUpdate
+     - IssueCommentDelete
+
+#### Issue Watchers
+     - IssueWatchersGet
+     - IssueWatcherAdd
+     - IssueWatcherRemove
+
+#### Issue Votes
+     - IssueVotesGet
+     - IssueVoteAdd
+     - IssueVoteRemove
+
+#### Issue Worklogs
+     - IssueWorklogsGet
+     - IssueWorklogAdd
+     - IssueWorklogGet
+     - IssueWorklogUpdate
+     - IssueWorklogDelete
+
+#### Issue Attachments
+     - IssueAttachmentsGet
+     - IssueAttachmentAdd
+     - IssueAttachmentDelete
+
+#### Issue Notifications
+     - IssueNotificationSend
+
+#### Issue Field Updates
      - IssueLabelAdd
      - IssueAssigneeByAccountId
      - IssueAssigneeByName
@@ -56,8 +138,11 @@ The request and response objects are having proper DTOS (data transfer or model 
      - IssueFixVersionUpdate
      - IssueFixVersionRemove
      - IssueDescriptionUpdate
-     - IssueGetById
-     - IssueSearch = with option to search by any issue or its child's field property
+
+#### Bulk Operations
+     - IssuesBulkCreate
+     - IssuesBulkEdit
+     - IssuesBulkDelete
      
 ### Custom Control on the Service - Cloud / Server
 

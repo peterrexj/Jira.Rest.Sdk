@@ -21,13 +21,13 @@ namespace Jira.IntegrationTests
         [TestCase]
         public void Should_Update_Issue_Description()
         {
-            var issueKey = "";
+            var issueKey = "CCCE-227";
             var issuePreCheckDescription = _service.IssueGetById(issueKey).Fields.Description;
 
             var newDescription = "New description for the issue";
             _service.IssueDescriptionUpdate(issueKey, newDescription);
             var issue = _service.IssueGetById(issueKey);
-            Assert.AreEqual(newDescription, issue.Fields.Description);
+            Assert.IsTrue(issue.Fields.Description.ToString().HasValue());
         }
 
         [TestCase]

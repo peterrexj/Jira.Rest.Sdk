@@ -12,10 +12,11 @@
 		<GeneratePackageOnBuild>false</GeneratePackageOnBuild>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<Copyright>Apache License 2.0</Copyright>
-		<Version>1.0.3</Version>
+		<Version>1.0.4</Version>
 		<Authors>Peter Joseph</Authors>
 		<Company>Peter Joseph</Company>
 		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>icon.svg</PackageIcon>
 		<PackageReleaseNotes>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/release-notes.txt"))</PackageReleaseNotes>
 		<Description>$([System.IO.File]::ReadAllText("$(MSBuildProjectDirectory)/product-description.txt"))</Description>
 		<PackageTags>jira selenium automation c# api essentials</PackageTags>
@@ -38,6 +39,10 @@
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="README.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="icon.svg">
 			<Pack>True</Pack>
 			<PackagePath>\</PackagePath>
 		</None>

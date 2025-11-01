@@ -1,39 +1,76 @@
-Jira.Rest.Sdk
-========
+<div align="center">
+  <img src="icon.svg" alt="Jira REST SDK" width="64" height="64">
+  
+  # Jira.Rest.Sdk
+  
+  **A comprehensive .NET SDK for Jira REST API integration**
+  
+  [![NuGet](https://img.shields.io/nuget/v/Jira.Rest.Sdk.svg)](https://www.nuget.org/packages/Jira.Rest.Sdk/)
+  [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/peterrexj/Jira.Rest.Sdk/blob/main/LICENSE)
+</div>
+
+---
 
 SDK using Jira REST to query Jira application using Rest endpoints. Manage your Jira process from query, create and update issues. Integrate with you existing automation solution or process that will manage both Jira Server and Cloud based application.
 
 The request and response objects are having proper DTOS (data transfer or model objects) defined within this package.
 
-More api request will be added in the upcoming releases.
+More API endpoints will be added in upcoming releases.
+
+## 🚀 Quick Start
+
+Install the package via NuGet Package Manager:
+
+```bash
+Install-Package Jira.Rest.Sdk
+```
+
+Or via .NET CLI:
+
+```bash
+dotnet add package Jira.Rest.Sdk
+```
 
 ## How to Use
 
 ### Connect to service
 
 ```C#
-     //Connect to cloud hosted Jira service
+     //Connect to cloud hosted Jira service (API v2 - default)
      var jiraService = new JiraService("jira url", "username", "password", isCloudVersion: true);
 
-     //Connect to cloud hosted Jira service
+     //Connect to server hosted Jira service (API v2 - default)
      var jiraService = new JiraService("jira url", "username", "password", isCloudVersion: false);
+
+     //Connect using Jira API version 3 (enhanced features)
+     var jiraServiceV3 = new JiraService("jira url", "username", "password",
+         isCloudVersion: true, jiraApiVersion: "3");
+
+     //Connect using bearer token authentication
+     var jiraService = new JiraService("jira url",
+          serviceUsername: "",
+          servicePassword: "",
+          isCloudVersion: true,
+          authToken: "bearer token");
 
      //Get a test case by Key
      var issue = jiraService.IssueGetById("POC-100");
 
      //Get a list of issues matching your jql
-     var issue = jiraService.IssueSearch("<your jql>");
+     var issues = jiraService.IssueSearch("<your jql>");
 
      //Get project by custom filters on any properties
      var project = jiraService.ProjectsGet(p => p.Name.EqualsIgnoreCase("poc")).FirstOrDefault();
 
+     //Enhanced project search (requires Jira API v3+)
+     var projects = jiraServiceV3.ProjectSearch("MyProject");
+
      //Create a Issue
-     var newIssue = jiraService.IssueCreate(projectKey: "POC", 
-                    issueType: "Story", 
-                    summary: "Build new interface for model B", 
-                    description: "Provide your detailed description for the issue", 
-                    priority: "High", 
-                    parentKey: "POC-99")
+     var newIssue = jiraService.IssueCreate(projectKey: "POC",
+                    issueType: "Story",
+                    summary: "Build new interface for model B",
+                    priority: "High",
+                    parentKey: "POC-99");
 ```
 
 ### Current Features
