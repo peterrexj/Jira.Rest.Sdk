@@ -354,3 +354,4 @@ MigrationBackup/
 .idea/.idea.Jira.Rest.Sdk/.idea/indexLayout.xml
 .idea/.idea.Jira.Rest.Sdk/.idea/projectSettingsUpdater.xml
 .idea/.idea.Jira.Rest.Sdk/.idea/vcs.xml
+.DS_Store
