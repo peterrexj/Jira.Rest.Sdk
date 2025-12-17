@@ -17,7 +17,7 @@ namespace Jira.Rest.Sdk
         protected string _appFullEndpoint;
         protected string _username;
         protected string _password;
-        private readonly bool _isCloudVersion = false;
+        private readonly bool _isCloudVersion = true;
         private static bool _loginVerified = false;
         protected string _proxyKeyName;
         protected string _authToken;
