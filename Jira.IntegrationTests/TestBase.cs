@@ -21,7 +21,9 @@ namespace Jira.IntegrationTests
             PjUtility.EnvironmentVariables.PathToEnvironmentVariableKeyNamesCollectionFile = "Jira.IntegrationTests.EnvVariableData.EnvironmentVariableNames.data";
             _service = new JiraService(EnvironmentVariables.JiraServerUrl,
                 EnvironmentVariables.JiraUsername, EnvironmentVariables.JiraPassword, isCloudVersion: true,
-                jiraApiVersion: "3");
+                jiraApiVersion: "3",
+                retryOnRequestTimeout: true,
+                requestRetryTimes: 5);
         }
     }
 }

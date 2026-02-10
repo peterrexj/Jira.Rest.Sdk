@@ -56,29 +56,6 @@ namespace Jira.Rest.Sdk
                       proxyKeyName, authToken)
         { }
 
-        private IList<Project> ProjectsGet(IDictionary<string, string> projectSearchRequest)
-        {
-            if (projectSearchRequest?.ContainsKey("fields") == false)
-            {
-                projectSearchRequest.Add("fields", "key,name,folder,status,priority,component,owner,estimatedTime,labels,customFields,issueLinks");
-            }
-            if (projectSearchRequest?.ContainsKey("maxResults") == false)
-            {
-                projectSearchRequest.Add("maxResults", PageSizeSearch.ToString());
-            }
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/search")
-                .SetQueryParams(projectSearchRequest)
-                .SetTimeout(RequestTimeoutInSeconds)
-                .GetWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            jiraResponse.AssertResponseStatusForSuccess();
-            return ToType<IList<Project>>(jiraResponse.ResponseBody.ContentString);
-        }
-
         #region Issues
 
         /// <summary>
@@ -713,12 +690,21 @@ namespace Jira.Rest.Sdk
             }
         }
 
+        /// <summary>
+        /// Internal method for executing a single page issue search request using the new /rest/api/3/search/jql endpoint.
+        /// This method is called by IssueSearchWithPagination to retrieve each page of results.
+        /// Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
+        /// </summary>
+        /// <param name="issueSearchRequest">The search request containing JQL query and pagination parameters.</param>
+        /// <returns>A paginated result containing issues and the nextPageToken for subsequent requests.</returns>
         internal Pagination2<Issue> IssueSearch(IssueSearchRequest issueSearchRequest)
         {
             //Using POST to handle large query string
+            // Note: Jira Cloud has migrated to /rest/api/3/search/jql endpoint
+            // Reference: https://developer.atlassian.com/changelog/#CHANGE-2046
+            // Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
             var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/search/jql")
                 .SetJsonBody(issueSearchRequest)
-                //.SetQueryParams(issueSearchRequest)
                 .SetTimeout(RequestTimeoutInSeconds)
                 .PostWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
@@ -738,7 +724,7 @@ namespace Jira.Rest.Sdk
         /// Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-search/#api-rest-api-3-search-jql-post
         /// </summary>
         /// <param name="jql">The JQL query string to use for searching issues.</param>
-        /// <param name="fields">A list of fields to return for each issue. By default, all navigable fields are returned.</param>
+        /// <param name="fields">A list of fields to return for each issue. By default, only IDs are returned by the new API.</param>
         /// <param name="fieldsByKeys">Whether the fields parameter accepts field IDs instead of field names. Default is false.</param>
         /// <param name="expand">A comma-separated list of the parameters to expand.</param>
         /// <param name="properties">A list of issue properties to return for each issue. By default, no properties are returned.</param>
@@ -755,11 +741,70 @@ namespace Jira.Rest.Sdk
             int[]? reconcileIssues = null,
             Func<Issue, bool>? predicate = null, bool breakSearchOnFirstConditionValid = true)
         {
-            fields ??= new[] { "*all" };
+            return IssueSearchWithPagination(
+                new IssueSearchRequest
+                {
+                    Jql = jql,
+                    Fields = fields,
+                    FieldsByKeys = fieldsByKeys ? true : null, // Only set if true, otherwise null to be ignored
+                    Expand = expand,
+                    Properties = properties,
+                    ReconcileIssues = reconcileIssues
+                },
+                predicate, breakSearchOnFirstConditionValid).ToList();
+        }
 
-            return SearchFullVersion2<Issue, IssueSearchRequest>(
-                new IssueSearchRequest { Jql = jql, Fields = fields, FieldsByKeys = fieldsByKeys, Expand = expand, Properties = properties, ReconcileIssues = reconcileIssues },
-                (s) => IssueSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
+        /// <summary>
+        /// Internal method for paginated issue search using the new nextPageToken approach.
+        /// </summary>
+        private IList<Issue> IssueSearchWithPagination(
+            IssueSearchRequest searchRequest,
+            Func<Issue, bool>? predicate = null,
+            bool breakSearchOnFirstConditionValid = true)
+        {
+            var results = new List<Issue>();
+            if (searchRequest == null) return results;
+
+            // Use provided MaxResults or default to 50
+            if (!searchRequest.MaxResults.HasValue || searchRequest.MaxResults.Value <= 0)
+            {
+                searchRequest.MaxResults = 50;
+            }
+
+            do
+            {
+                var resp = IssueSearch(searchRequest);
+                if (predicate != null)
+                {
+                    foreach (var value in resp.PaginatedItems)
+                    {
+                        if (predicate(value) == true)
+                        {
+                            results.Add(value);
+                            if (breakSearchOnFirstConditionValid)
+                            {
+                                return results;
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    resp.PaginatedItems.Iter(r => results.Add(r));
+                }
+
+                // Check if there are more pages using isLast or nextPageToken
+                if (resp.IsLast || string.IsNullOrEmpty(resp.NextPageToken))
+                {
+                    break;
+                }
+
+                // Update nextPageToken for the next page
+                searchRequest.NextPageToken = resp.NextPageToken;
+            }
+            while (true);
+
+            return results;
         }
 
 
@@ -882,7 +927,7 @@ namespace Jira.Rest.Sdk
                         }
                     }
                 };
-                
+
                 updateSection = new { comment = new[] { new { add = new { body = formattedCommentBody } } } };
             }
 
@@ -1395,7 +1440,7 @@ namespace Jira.Rest.Sdk
         {
             // Get the issue with attachment field to retrieve attachments
             var issue = IssueGetById(issueKey, "attachment");
-            
+
             // Convert the issue attachments to AttachmentsList format
             var attachmentsList = new AttachmentsList
             {
@@ -1405,7 +1450,7 @@ namespace Jira.Rest.Sdk
                 IsLast = true,
                 Values = issue.Fields.Attachment ?? new List<Attachment>()
             };
-            
+
             return attachmentsList;
         }
 
@@ -1562,13 +1607,38 @@ namespace Jira.Rest.Sdk
         #region Projects
 
         /// <summary>
-        /// Retrieves a list of all projects in Jira.
+        /// Cache for storing project metadata to avoid redundant API calls.
+        /// Key: Project key, Value: Project metadata response.
         /// </summary>
-        /// <returns>A list of all projects.</returns>
-        public List<Project> ProjectsGet()
+        private ConcurrentDictionary<string, TestApiResponse> _ProjectMedaData = new ConcurrentDictionary<string, TestApiResponse>();
+
+        /// <summary>
+        /// Retrieves and caches project metadata for a given project key.
+        /// Subsequent calls for the same project will return cached data.
+        /// </summary>
+        /// <param name="projectKey">The key of the project.</param>
+        /// <returns>The cached or freshly retrieved project metadata.</returns>
+        private TestApiResponse ProjectMetaInfoCache(string projectKey)
         {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project")
-                .WithJsonResponse()
+            if (!_ProjectMedaData.ContainsKey(projectKey))
+            {
+                _ProjectMedaData.AddOrUpdate(projectKey, IssueCreateMetaDataGet(projectKey));
+            }
+            return _ProjectMedaData[projectKey];
+        }
+
+        /// <summary>
+        /// Internal method for paginated project search using the new Jira API v3 approach.
+        /// Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-projects/#api-rest-api-3-project-search-get
+        /// </summary>
+        private Pagination2<Project> ProjectSearchPaginated(ProjectSearchRequest projectSearchRequest)
+        {
+            var queryParams = projectSearchRequest
+               .GetPropertyValuesV2()
+               .TransformKeysToJsonPropertyNames(projectSearchRequest);
+
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/search")
+                .SetQueryParams(queryParams)
                 .SetTimeout(RequestTimeoutInSeconds)
                 .GetWithRetry(assertOk: AssertResponseStatusOk,
                    timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
@@ -1577,19 +1647,38 @@ namespace Jira.Rest.Sdk
                    retryOnRequestTimeout: RetryOnRequestTimeout);
 
             jiraResponse.AssertResponseStatusForSuccess();
-            return ToType<List<Project>>(jiraResponse.ResponseBody.ContentString);
+            return ToType<Pagination2<Project>>(jiraResponse.ResponseBody.ContentString);
+        }
+
+        /// <summary>
+        /// Retrieves a list of all projects in Jira using the paginated project search API.
+        /// This method uses the new Jira API v3 paginated approach internally.
+        /// Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-projects/#api-rest-api-3-project-search-get
+        /// </summary>
+        /// <returns>A list of all projects.</returns>
+        public List<Project> ProjectsGet()
+        {
+            return SearchFullVersion2<Project, ProjectSearchRequest>(
+                new ProjectSearchRequest { },
+                (s) => ProjectSearchPaginated(s),
+                predicate: null,
+                breakSearchOnFirstConditionValid: false).ToList();
         }
 
         /// <summary>
         /// Retrieves a list of projects in Jira that match the given name or key.
+        /// Uses the new paginated search API with query filtering for better performance.
         /// </summary>
         /// <param name="nameOrKey">The name or key of the projects to retrieve.</param>
         /// <returns>A list of projects that match the given name or key.</returns>
         public List<Project> ProjectsGetByNameOrKey(string nameOrKey)
         {
-            return ProjectsGet()
-                .Where(p => (p.Key.HasValue() && p.Key.EqualsIgnoreCase(nameOrKey)) || (p.Name.HasValue() && p.Name.EqualsIgnoreCase(nameOrKey)))
-                .ToList();
+            return SearchFullVersion2<Project, ProjectSearchRequest>(
+                new ProjectSearchRequest { Query = nameOrKey },
+                (s) => ProjectSearchPaginated(s),
+                predicate: p => (p.Key.HasValue() && p.Key.EqualsIgnoreCase(nameOrKey)) ||
+                               (p.Name.HasValue() && p.Name.EqualsIgnoreCase(nameOrKey)),
+                breakSearchOnFirstConditionValid: false).ToList();
         }
 
         /// <summary>
@@ -1611,25 +1700,12 @@ namespace Jira.Rest.Sdk
             return ToType<Project>(jiraResponse.ResponseBody.ContentString);
         }
 
-        private Pagination<Project> ProjectSearch(IDictionary<string, string> issueSearchRequest)
-        {
-            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/project/search")
-                .SetQueryParams(issueSearchRequest)
-                .SetTimeout(RequestTimeoutInSeconds)
-                .GetWithRetry(assertOk: AssertResponseStatusOk,
-                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
-                   retryOption: RequestRetryTimes,
-                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
-                   retryOnRequestTimeout: RetryOnRequestTimeout);
-
-            jiraResponse.AssertResponseStatusForSuccess();
-            return ToType<Pagination<Project>>(jiraResponse.ResponseBody.ContentJson);
-        }
-
         /// <summary>
         /// Searches for projects in Jira based on a query and an optional predicate.
+        /// Uses the new paginated project search API with nextPageToken approach.
+        /// Reference: https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-projects/#api-rest-api-3-project-search-get
         /// </summary>
-        /// <param name="query">The query string to search for projects.</param>
+        /// <param name="query">The query string to search for projects (filters by name, key, or description).</param>
         /// <param name="predicate">An optional predicate to filter the projects.</param>
         /// <param name="breakSearchOnFirstConditionValid">Indicates whether to stop searching when the first valid condition is met. Defaults to true.</param>
         /// <returns>A list of projects that match the query and predicate.</returns>
@@ -1638,19 +1714,11 @@ namespace Jira.Rest.Sdk
             if (JiraApiVersion.ToInteger() <= 2)
                 throw new Exception("This is supported on Jira version 3 or above");
 
-            return SearchFull<Project>(
-                new { query = query }.GetPropertyValuesV2(),
-                (s) => ProjectSearch(s), predicate, breakSearchOnFirstConditionValid).ToList();
-        }
-
-        private ConcurrentDictionary<string, TestApiResponse> _ProjectMedaData = new ConcurrentDictionary<string, TestApiResponse>();
-        private TestApiResponse ProjectMetaInfoCache(string projectKey)
-        {
-            if (!_ProjectMedaData.ContainsKey(projectKey))
-            {
-                _ProjectMedaData.AddOrUpdate(projectKey, IssueCreateMetaDataGet(projectKey));
-            }
-            return _ProjectMedaData[projectKey];
+            return SearchFullVersion2<Project, ProjectSearchRequest>(
+                new ProjectSearchRequest { Query = query },
+                (s) => ProjectSearchPaginated(s),
+                predicate,
+                breakSearchOnFirstConditionValid).ToList();
         }
 
         #endregion
@@ -1780,6 +1848,18 @@ namespace Jira.Rest.Sdk
             return ToType<ProjectComponent>(jiraResponse.ResponseBody.ContentJson);
         }
 
+        /// <summary>
+        /// Generic internal method for performing paginated searches using SearchRequestBase2 with startAt-based pagination.
+        /// Note: This method is designed for endpoints that use numeric startAt offsets (old pagination approach).
+        /// For nextPageToken-based pagination (new Jira API), use IssueSearchWithPagination instead.
+        /// </summary>
+        /// <typeparam name="T">The type of items to return in the search results.</typeparam>
+        /// <typeparam name="M">The search request type that inherits from SearchRequestBase2.</typeparam>
+        /// <param name="searchQuery">The search query parameters including startAt and maxResults.</param>
+        /// <param name="search">The function to execute the search and return paginated results.</param>
+        /// <param name="predicate">Optional predicate to filter the results.</param>
+        /// <param name="breakSearchOnFirstConditionValid">If true, stops searching when the first matching result is found.</param>
+        /// <returns>A list of items that match the search criteria.</returns>
         internal IList<T> SearchFullVersion2<T, M>(
             M? searchQuery,
             Func<M, Pagination2<T>> search,
@@ -1787,10 +1867,15 @@ namespace Jira.Rest.Sdk
             bool breakSearchOnFirstConditionValid = true) where M : SearchRequestBase2
         {
             var results = new List<T>();
-            var maxResults = 50;
             if (searchQuery == null) return results.ToList();
-            searchQuery.MaxResults = maxResults;
-            searchQuery.NextPageToken = null;
+
+            // Use provided MaxResults or default to 100
+            if (!searchQuery.MaxResults.HasValue || searchQuery.MaxResults.Value <= 0)
+            {
+                searchQuery.MaxResults = 50;
+            }
+
+            searchQuery.StartAt = 0;
 
             do
             {
@@ -1813,13 +1898,31 @@ namespace Jira.Rest.Sdk
                 {
                     resp.PaginatedItems.Iter(r => results.Add(r));
                 }
-                searchQuery.NextPageToken = resp.nextPageToken;
+
+                // Check if there are more pages using isLast or nextPageToken
+                if (resp.IsLast || string.IsNullOrEmpty(resp.NextPageToken))
+                {
+                    break;
+                }
+
+                // Update startAt for the next page
+                searchQuery.StartAt = long.Parse(resp.NextPageToken);
             }
-            while (searchQuery.NextPageToken.HasValue());
+            while (true);
 
             return results.ToList();
         }
 
+        /// <summary>
+        /// Generic internal method for performing paginated searches using dictionary-based query parameters.
+        /// This method handles pagination with startAt and maxResults parameters for older Jira API endpoints.
+        /// </summary>
+        /// <typeparam name="T">The type of items to return in the search results.</typeparam>
+        /// <param name="searchQuery">Dictionary containing query parameters including startAt and maxResults.</param>
+        /// <param name="search">The function to execute the search and return paginated results.</param>
+        /// <param name="predicate">Optional predicate to filter the results.</param>
+        /// <param name="breakSearchOnFirstConditionValid">If true, stops searching when the first matching result is found.</param>
+        /// <returns>A list of items that match the search criteria.</returns>
         internal IList<T> SearchFull<T>(
             IDictionary<string, string> searchQuery,
             Func<IDictionary<string, string>, Pagination<T>> search,
@@ -1903,6 +2006,12 @@ namespace Jira.Rest.Sdk
             return results.ToList();
         }
 
+        /// <summary>
+        /// Helper method to check if a JToken is empty (null, empty string, empty array, or empty object).
+        /// Used when extracting dynamic fields from issue responses.
+        /// </summary>
+        /// <param name="token">The JToken to check.</param>
+        /// <returns>True if the token is empty, false otherwise.</returns>
         private bool IsEmptyToken(JToken token)
         {
             return token.Type == JTokenType.Null ||

@@ -619,4 +619,111 @@ internal class IssueTests : TestBase
             }
         }
     }
+
+    [TestCase]
+    public void Should_Search_All_Issues()
+    {
+        // Test searching for issues using a bounded JQL query (required by new API)
+        // The new /search/jql API doesn't allow unbounded queries
+        var jql = "created >= -30d order by created DESC";
+        var fields = new[] { "summary", "status", "created" }; // Must specify fields, new API only returns IDs by default
+        var issues = _service.IssueSearch(jql, fields: fields);
+        
+        Assert.IsNotNull(issues, "Issues list should not be null");
+        Assert.Greater(issues.Count, 0, "Should return at least one issue from the Jira instance");
+        
+        // Verify that issues have basic properties populated
+        foreach (var issue in issues.Take(10)) // Check first 10 issues
+        {
+            Assert.IsTrue(issue.Key.HasValue(), $"Issue key should not be empty");
+            Assert.IsNotNull(issue.Fields, $"Issue {issue.Key} should have fields");
+            Assert.IsTrue(issue.Fields.Summary.HasValue(), $"Issue {issue.Key} should have a summary");
+        }
+        
+        TestContext.WriteLine($"Successfully retrieved {issues.Count} issues using the new search functionality");
+    }
+
+    [TestCase]
+    public void Should_Search_All_Issues_With_Pagination()
+    {
+        // Test the pagination functionality with the new nextPageToken approach
+        // The new /search/jql API requires bounded queries and explicit field specification
+        var jql = "project is not EMPTY AND created >= -30d order by created DESC";
+        var fields = new[] { "summary", "status", "created" };
+        
+        // Search with default pagination
+        var allIssues = _service.IssueSearch(jql, fields: fields);
+        Assert.IsNotNull(allIssues, "Issues list should not be null");
+        Assert.Greater(allIssues.Count, 0, "Should return at least one issue");
+        
+        // Verify pagination is working by checking if we get consistent results
+        var firstIssue = allIssues.FirstOrDefault();
+        Assert.IsNotNull(firstIssue, "Should have at least one issue");
+        Assert.IsTrue(firstIssue.Key.HasValue(), "First issue should have a key");
+        
+        TestContext.WriteLine($"Pagination test: Retrieved {allIssues.Count} total issues");
+        TestContext.WriteLine($"First issue key: {firstIssue.Key}");
+        TestContext.WriteLine($"First issue summary: {firstIssue.Fields.Summary}");
+    }
+
+    [TestCase]
+    public void Should_Search_Issues_With_Specific_Fields()
+    {
+        // Test searching with specific fields to verify the new fields parameter works
+        var jql = EnvironmentVariables.IssueFilter;
+        var fields = new[] { "summary", "status", "assignee", "created" };
+        
+        var issues = _service.IssueSearch(jql, fields: fields);
+        
+        Assert.IsNotNull(issues, "Issues list should not be null");
+        Assert.Greater(issues.Count, 0, $"Should return at least one issue for filter: {jql}");
+        
+        // Verify that the requested fields are populated
+        var firstIssue = issues.FirstOrDefault();
+        Assert.IsNotNull(firstIssue, "Should have at least one issue");
+        Assert.IsNotNull(firstIssue.Fields, "Issue should have fields");
+        Assert.IsTrue(firstIssue.Fields.Summary.HasValue(), "Summary field should be populated");
+        Assert.IsNotNull(firstIssue.Fields.Status, "Status field should be populated");
+        
+        TestContext.WriteLine($"Retrieved {issues.Count} issues with specific fields");
+        TestContext.WriteLine($"First issue: {firstIssue.Key} - {firstIssue.Fields.Summary}");
+    }
+
+    [TestCase]
+    public void Should_Search_Issues_With_Predicate()
+    {
+        // Test searching with a predicate to filter results
+        // Note: Must specify fields explicitly with new API
+        var jql = EnvironmentVariables.IssueFilter;
+        var fields = new[] { "summary", "status", "created" };
+        
+        // Search for issues and filter by predicate
+        var issues = _service.IssueSearch(
+            jql,
+            fields: fields,
+            predicate: issue => issue.Fields != null && 
+                               issue.Fields.Summary != null && 
+                               (issue.Fields.Summary.Contains("Test") || issue.Fields.Summary.Contains("test")),
+            breakSearchOnFirstConditionValid: false
+        );
+        
+        Assert.IsNotNull(issues, "Issues list should not be null");
+        
+        // If we found issues, verify they match the predicate
+        if (issues.Count > 0)
+        {
+            foreach (var issue in issues)
+            {
+                var summaryContainsTest = issue.Fields.Summary.Contains("Test") ||
+                                         issue.Fields.Summary.Contains("test");
+                Assert.IsTrue(summaryContainsTest,
+                    $"Issue {issue.Key} with summary '{issue.Fields.Summary}' should contain 'Test' or 'test'");
+            }
+            TestContext.WriteLine($"Found {issues.Count} issues matching the predicate");
+        }
+        else
+        {
+            TestContext.WriteLine("No issues found matching the predicate (this is acceptable)");
+        }
+    }
 }

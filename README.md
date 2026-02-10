@@ -32,7 +32,17 @@ The request and response objects are having proper DTOS (data transfer or model 
      var issue = jiraService.IssueGetById("POC-100");
 
      //Get a list of issues matching your jql
-     var issues = jiraService.IssueSearch("<your jql>");
+     // Note: JQL queries must be bounded (time-constrained) for Jira Cloud API v3
+     // Note: Specify fields parameter to get full issue data (default is IDs only)
+     var issues = jiraService.IssueSearch(
+          jql: "project = POC AND created >= -30d",
+          fields: new[] { "summary", "status", "assignee", "created" });
+
+     //Search with a predicate filter
+     var filteredIssues = jiraService.IssueSearch(
+          jql: "project = POC AND created >= -30d",
+          fields: new[] { "summary", "status" },
+          predicate: issue => issue.Fields?.Status?.Name == "In Progress");
 
      //Get project by custom filters on any properties
      var project = jiraService.ProjectsGet(p => p.Name.EqualsIgnoreCase("poc")).FirstOrDefault();
@@ -79,7 +89,11 @@ The request and response objects are having proper DTOS (data transfer or model 
 #### Issue Management
      - IssueCreate
      - IssueGetById
-     - IssueSearch = with option to search by any issue or its child's field property
+     - IssueSearch = Search issues using JQL with pagination support
+       - **Important**: Jira Cloud API v3 requires bounded JQL queries (e.g., use time constraints like `created >= -30d`)
+       - **Important**: By default, only issue IDs are returned. Specify the `fields` parameter to get full issue data
+       - Supports automatic pagination using nextPageToken (Jira Cloud API v3)
+       - Can filter results with predicate functions
      - IssueSearchApproximateCount
      - IssueDelete
      - IssueUpdate
