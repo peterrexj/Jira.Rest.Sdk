@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
@@ -32,7 +32,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\..\Selenium.Essentials\src\TestAny.Essentials.Api\TestAny.Essentials.Api.csproj" />
+	  <PackageReference Include="Newtonsoft.Json" Version="13.0.5-beta1" />
+	  <PackageReference Include="Pj.Library" Version="1.0.5.3" />
+	  <PackageReference Include="TestAny.Essentials.Api" Version="2.0.5" />
+	  <PackageReference Include="TestAny.Essentials.Core" Version="2.0.5" />
 	</ItemGroup>
 	<ItemGroup>
 		<None Update="product-description.txt">
