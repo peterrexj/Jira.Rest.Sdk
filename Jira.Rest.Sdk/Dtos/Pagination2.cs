@@ -25,8 +25,8 @@ namespace Jira.Rest.Sdk.Dtos
         /// <summary>
         /// The URL of the next page of results, if any.
         /// </summary>
-        [JsonProperty("nextPage")]
-        public string NextPage { get; set; }
+        [JsonProperty("nextPageToken")]
+        public string NextPageToken { get; set; }
 
         /// <summary>
         /// The URL of the page.
@@ -63,22 +63,5 @@ namespace Jira.Rest.Sdk.Dtos
         /// </summary>
         public List<T> PaginatedItems => Issues ?? Values;
 
-        /// <summary>
-        /// Gets the next page token extracted from the NextPage URL.
-        /// Returns null if there is no next page or if NextPage is null/empty.
-        /// </summary>
-        public string NextPageToken
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(NextPage))
-                    return null;
-
-                var uri = new System.Uri(NextPage);
-                var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-                var values = query.GetValues("startAt");
-                return values?.LastOrDefault(); // Take the last value if multiple exist
-            }
-        }
     }
 }
