@@ -26,5 +26,8 @@ namespace Jira.Rest.Sdk.Dtos
 
         [JsonProperty("names", NullValueHandling = NullValueHandling.Ignore)]
         public Names Names { get; set; }
+
+        [JsonProperty("changelog", NullValueHandling = NullValueHandling.Ignore)]
+        public Changelog Changelog { get; set; }
     }
 }

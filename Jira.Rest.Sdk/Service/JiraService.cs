@@ -765,10 +765,9 @@ namespace Jira.Rest.Sdk
             var results = new List<Issue>();
             if (searchRequest == null) return results;
 
-            // Use provided MaxResults or default to 50
             if (!searchRequest.MaxResults.HasValue || searchRequest.MaxResults.Value <= 0)
             {
-                searchRequest.MaxResults = 50;
+                searchRequest.MaxResults = 100;
             }
 
             do
@@ -1764,6 +1763,22 @@ namespace Jira.Rest.Sdk
             jiraResponse.AssertResponseStatusForSuccess();
 
             return ToType<Assignee>(jiraResponse.ResponseBody.ContentJson);
+        }
+
+        public Assignee UserAccountSearch(string query)
+        {
+            var jiraResponse = OpenRequest($"/rest/api/{JiraApiVersion}/user/search")
+              .SetQueryParams(new ParameterCollection { { "query", query } })
+              .SetTimeout(RequestTimeoutInSeconds)
+              .GetWithRetry(assertOk: AssertResponseStatusOk,
+                   timeToSleepBetweenRetryInMilliseconds: TimeToSleepBetweenRetryInMilliseconds,
+                   retryOption: RequestRetryTimes,
+                   httpStatusCodes: ListOfResponseCodeOnFailureToRetry,
+                   retryOnRequestTimeout: RetryOnRequestTimeout);
+
+            jiraResponse.AssertResponseStatusForSuccess();
+
+            return ((List<Assignee>)ToType<List<Assignee>>(jiraResponse.ResponseBody.ContentJson))?.FirstOrDefault();
         }
 
         #endregion

@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -23,10 +23,16 @@ namespace Jira.Rest.Sdk.Dtos
         public int MaxResults { get; set; }
 
         /// <summary>
-        /// The URL of the next page of results, if any.
+        /// The URL of the next page of results, if any. Used by project search and older endpoints.
         /// </summary>
         [JsonProperty("nextPage")]
         public string NextPage { get; set; }
+
+        /// <summary>
+        /// The opaque next-page cursor returned by the JQL issue search endpoint (/search/jql).
+        /// </summary>
+        [JsonProperty("nextPageToken")]
+        public string NextPageTokenRaw { get; set; }
 
         /// <summary>
         /// The URL of the page.
@@ -64,20 +70,23 @@ namespace Jira.Rest.Sdk.Dtos
         public List<T> PaginatedItems => Issues ?? Values;
 
         /// <summary>
-        /// Gets the next page token extracted from the NextPage URL.
-        /// Returns null if there is no next page or if NextPage is null/empty.
+        /// Gets the next page token from either the JQL cursor (nextPageToken) or extracted from the NextPage URL (startAt param).
+        /// Returns null if there is no next page.
         /// </summary>
         public string NextPageToken
         {
             get
             {
+                if (!string.IsNullOrEmpty(NextPageTokenRaw))
+                    return NextPageTokenRaw;
+
                 if (string.IsNullOrEmpty(NextPage))
                     return null;
 
                 var uri = new System.Uri(NextPage);
                 var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
                 var values = query.GetValues("startAt");
-                return values?.LastOrDefault(); // Take the last value if multiple exist
+                return values?.LastOrDefault();
             }
         }
     }

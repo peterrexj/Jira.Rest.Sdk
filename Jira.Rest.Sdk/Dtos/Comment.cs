@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using Jira.Rest.Sdk.Extensions;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -17,7 +18,8 @@ namespace Jira.Rest.Sdk.Dtos
         public Author Author { get; set; }
 
         [JsonProperty("body", NullValueHandling = NullValueHandling.Ignore)]
-        public Description Body { get; set; }
+        [JsonConverter(typeof(DescriptionConverter))]
+        public object Body { get; set; }
 
         [JsonProperty("updateAuthor", NullValueHandling = NullValueHandling.Ignore)]
         public UpdateAuthor UpdateAuthor { get; set; }

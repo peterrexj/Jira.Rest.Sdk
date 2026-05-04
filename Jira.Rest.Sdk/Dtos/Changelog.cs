@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -25,7 +25,18 @@ namespace Jira.Rest.Sdk.Dtos
         [JsonProperty("total", NullValueHandling = NullValueHandling.Ignore)]
         public int Total { get; set; }
 
+        // dedicated /changelog endpoint response
         [JsonProperty("values", NullValueHandling = NullValueHandling.Ignore)]
         public List<ChangelogEntry> Values { get; set; }
+
+        // expand=changelog embedded in issue search response
+        [JsonProperty("histories", NullValueHandling = NullValueHandling.Ignore)]
+        public List<ChangelogEntry> Histories { get; set; }
+
+        // unified access regardless of source
+        public List<ChangelogEntry> Entries => Histories ?? Values;
+
+        // embedded response has no isLast — complete when entry count matches total
+        public bool IsComplete => Entries != null && Entries.Count >= Total;
     }
 }
