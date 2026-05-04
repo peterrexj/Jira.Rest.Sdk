@@ -1,7 +1,7 @@
 ﻿Set-ExecutionPolicy Bypass
 
 $apiKey = [System.Environment]::GetEnvironmentVariable('NugetApiKey', 'User')
-$packageVersion = '.1.0.9.nupkg'
+$packageVersion = '.1.0.10.nupkg'
 
 $jira = [IO.Path]::Combine($PSScriptRoot, '..\Output\Jira.Rest.Sdk' + $packageVersion)
 
